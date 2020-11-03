@@ -1,4 +1,3 @@
-
 //tamanho máximo do output
 #define OUTPUTSIZE 150
 
@@ -36,17 +35,23 @@
 //imprime espaçador para palavra
 #define SPACER "\n\n\t\t\t\t"
 
-//estados do ciclo principal
-enum State{ HELP, LETTER_FOUND, LETTER_NOT_FOUND, WORD_FOUND, WRONG_WORD, REPEAT, GAME_OVER};
+//imprime str no ficheiro com o descritor fd_out
+void print(const char* str, int fd_out);
 
-//pontos vitória
-#define VICTORY 250
-#define VICTORY_LETTERS 200
+//imprime o caracter c, size numero de vezes
+void print_chars(size_t size, const char* c, int fd_out);
 
-//estrutura com dados de jogo
-typedef struct {
-	size_t count;      //numero de letras encontradas
-	size_t size;	   //tamanho da palavra
-	size_t attempts;   //contador de tentativas
-	size_t points;     //pontos finais
-} GameData;
+//imprime no ficheiro com descritor fd_out com espaços
+void print_word(size_t size, const char* str, int fd_out);
+
+//imprime o interface do jogo
+void print_user_interface(const char *word, size_t size, int fd, const char *spacer, const char *menu);
+
+//verifica se ainda existem characteres no stdin, e caso se verifique, limpa-o
+void _clear_buffer(int fd);
+
+//lê linha do stdin, acrescenta o null byte e remove \n \t ou espaços do fim
+size_t get_user_input(char* input, int fd, int size);
+
+//preenche a palavra str com o character c
+void fill_word(char* str, size_t size, const char* c);

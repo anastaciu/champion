@@ -6,9 +6,9 @@
 #include <time.h>
 #include <ctype.h>
 
-#include "interface.h"
+#include "logic_interface.h"
 #include "dictionary.h"
-//#include "constants.h" //incluído em interface.h
+#include "output_interface.h" 
 
 int main()
 {

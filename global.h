@@ -1,7 +1,7 @@
 
 #define MAX_LEN_NAME 50                       // tamanho máximo nome de named pipes
-#define MAX_LEN_COM 50                        // tamanho máximo argumentos da linha de comandos
 #define MAX_LEN_USER 50                       // tamanho máximo do username 
+
 #define SERVER_LOG_FIFO "/tmp/login_fifo"     // nome do FIFO do servidor para login
 #define CLIENT_LOG_FIFO "/tmp/login_%d_fifo"  // nome do FIFO de login do cliente    
 

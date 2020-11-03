@@ -2,7 +2,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "constants.h"
+#include "defaults.h"
 
 int main_cycle(char *input, char *word, const char *dict_word, size_t input_length, GameData *game)
 {

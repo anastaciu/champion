@@ -1,4 +1,3 @@
-
 #include "defaults.h"
 
 //ciclo principal, verifica o estado do jogo e age de acordo com as regras, retorna estado

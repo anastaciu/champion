@@ -23,7 +23,11 @@ CmdArgs command_line_arguments(long *wait_time, long *game_duration, int argc, c
             *game_duration = DEFAULT_GAME_TIME;
             a = ERROR_GAME_TIME;
         }
-    }
+        else
+        {
+            a = MISSING_WAIT_TIME;
+        }      
+    }   
 
     if (argc > 2)
     {
@@ -36,6 +40,7 @@ CmdArgs command_line_arguments(long *wait_time, long *game_duration, int argc, c
             else
                 a = ERROR_WAIT_TIME;
         }
+        else a = OK;
     }
     return a;
 }

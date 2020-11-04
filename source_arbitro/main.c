@@ -34,10 +34,13 @@ int main(int argc, char **argv)
         print(ERROR_BOTH_OUT, FD_OUT);
         print(DEFAULT_OUT, FD_OUT);
         break;
+    case MISSING_WAIT_TIME:
+        print(MISSING_WAIT_TIME_OUT, FD_OUT);
+        print(DEFAULT_OUT, FD_OUT);
+        break;
     case OK:
         break;
     }
-
     sprintf(output, WAIT_TIME_OUT, wait_time);
     print(output, FD_OUT);
     sprintf(output, GAME_DURATION_OUT, game_duration);

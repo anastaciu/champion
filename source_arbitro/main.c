@@ -4,8 +4,8 @@
 
 #include "defaults.h"
 #include "logic_interface.h"
-#include "../global.h"
-#include "output_interface.h"
+#include "../global_interface.h"
+#include "user_interface.h"
 
 int main(int argc, char **argv)
 {

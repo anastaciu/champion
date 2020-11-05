@@ -1,9 +1,3 @@
-//tamanho máximo do output
-#define OUTPUTSIZE 150
-
-//descritores de entrada e saída
-#define FD_OUT fileno(stdout)
-#define FD_IN fileno(stdin)
 
 //imprime cabeçaho com instruções
 #define HEADER "\n\
@@ -35,9 +29,6 @@
 //imprime espaçador para palavra
 #define SPACER "\n\n\t\t\t\t"
 
-//imprime str no ficheiro com o descritor fd_out
-void print(const char* str, int fd_out);
-
 //imprime o caracter c, size numero de vezes
 void print_chars(size_t size, const char* c, int fd_out);
 
@@ -46,12 +37,6 @@ void print_word(size_t size, const char* str, int fd_out);
 
 //imprime o interface do jogo
 void print_user_interface(const char *word, size_t size, int fd, const char *spacer, const char *menu);
-
-//verifica se ainda existem characteres no stdin, e caso se verifique, limpa-o
-void _clear_buffer(int fd);
-
-//lê linha do stdin, acrescenta o null byte e remove \n \t ou espaços do fim
-size_t get_user_input(char* input, int fd, int size);
 
 //preenche a palavra str com o character c
 void fill_word(char* str, size_t size, const char* c);

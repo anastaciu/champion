@@ -18,5 +18,3 @@
 #define PARSED_GAMEDIR_OUT "A diretoria dos jogos é '%s'\n"
 #define GAMEDIR_ERROR_OUT "GAMEDIR não encontrado, '%s' é a diretoria definida por defeito\n"
 
-//imprime str no ficheiro com o descritor fd_out
-void print(const char* str, int fd_out);

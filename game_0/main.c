@@ -6,9 +6,11 @@
 #include <time.h>
 #include <ctype.h>
 
+#include "../global_interface.h"
 #include "logic_interface.h"
 #include "dictionary.h"
-#include "output_interface.h" 
+#include "../global.h"
+#include "user_interface.h" 
 
 int main()
 {

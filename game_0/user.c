@@ -4,11 +4,7 @@
 #include <poll.h>
 #include <ctype.h>
 
-void print(const char *str, int fd_out)
-{
-    write(fd_out, str, strlen(str));
-    fflush(stdout);
-}
+#include "../global_interface.h"
 
 void print_chars(size_t size, const char *c, int fd_out)
 {
@@ -39,48 +35,10 @@ void print_user_interface(const char *word, size_t size, int fd, const char *spa
     print(menu, fd);
 }
 
-void _clear_buffer(int fd)
-{
-    struct pollfd pfd = {.fd = fd, .events = POLLIN};
-    if (poll(&pfd, 1, 0) > 0)
-    {
-        if (pfd.revents & POLLIN)
-        {
-            char c;
-            while (read(fd, &c, 1) > 0 && c != '\n')
-            {
-                continue;
-            }
-        }
-    }
-}
-
 void fill_word(char *str, size_t size, const char *c)
 {
     size_t i;
     for (i = 0; i < size; i++)
         str[i] = c[0];
     str[i] = '\0';
-}
-
-size_t get_user_input(char *input, int fd, int size)
-{
-    size_t read_chars;
-    do
-    {
-        read_chars = read(fd, input, size);
-        input[strcspn(input, "\t\n ")] = '\0';
-
-    } while (strlen(input) < 1);
-
-    input[read_chars - 1] = '\0';
-    size_t length = strcspn(input, "\t\n ");
-    input[length] = '\0';
-
-    for (size_t i = 0; i < strlen(input); i++)
-    {
-        input[i] = toupper(input[i]);
-    }
-    _clear_buffer(fd);
-    return length;
 }

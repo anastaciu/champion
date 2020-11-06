@@ -1,7 +1,6 @@
 
 #include <stdio.h>
 
-#define OUTPUT_SIZE 150 //tamanho máximo de mensagens de output
 #define FD_OUT fileno(stdout) //descritor stdout
 
 //mensagens de output

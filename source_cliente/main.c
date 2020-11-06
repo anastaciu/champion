@@ -8,12 +8,14 @@
 
 int main()
 {
-    PlayerData player;
+    PlayerLog player;
 
-    char output[OUTPUTSIZE];
+    char output[OUTPUT_SIZE];
     
+    player.player_pid = getpid();
+
     print(NAME_PROMPT_OUT, FD_OUT);
     get_user_input(player.name, FD_IN, MAX_LEN_NAME);
-    sprintf(output, USER_NAME_OUT, player.name);  
+    sprintf(output, USER_NAME_OUT USER_PID_OUT, player.name, player.player_pid);  
     print(output, FD_OUT);
 }

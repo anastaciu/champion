@@ -48,7 +48,7 @@ int main_cycle(char *input, char *word, const char *dict_word, size_t input_leng
             //se todas as letras encontradas termina o jogo
             if (strcmp(input, dict_word) == 0)
             {
-                game->points = game->attempts * 5 + VICTORY_LETTERS;
+                game->points = game->attempts * VICTORY_LETTERS_ATTEMPTS + VICTORY_LETTERS;
                 game->attempts = 0;
                 return WORD_FOUND;               
             }
@@ -59,7 +59,7 @@ int main_cycle(char *input, char *word, const char *dict_word, size_t input_leng
     //tentativa de adivinhar, input com mais do que uma letra
     else if (strcmp(input, dict_word) == 0)
     {
-        game->points = game->attempts * 10 + VICTORY;
+        game->points = game->attempts * VICTORY_ATTEMPTS + VICTORY;
         game->attempts = 0;
         return WORD_FOUND;
     }
@@ -69,7 +69,7 @@ int main_cycle(char *input, char *word, const char *dict_word, size_t input_leng
         (game->attempts)--;
         if (game->attempts == 0)
         {
-            game->points = game->count * 5;
+            game->points = game->count * VICTORY_LETTERS_ATTEMPTS;
             return GAME_OVER;
         }
         return WRONG_WORD;

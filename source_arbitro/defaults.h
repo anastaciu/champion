@@ -5,11 +5,13 @@
 #define DIR_NAME "GAMEDIR"          // nome da variável de ambiente 
 #define DEFAULT_GAME_TIME 900       // tempo padrão de jogo em segundos
 #define MIN_GAME_TIME 60            // tempo de jogo mínimo em segundos
-#define DEFAULT_WAIT_TIME 600       // tempo padrão de espera em segundos
+#define DEFAULT_WAIT_TIME 60        // tempo padrão de espera em segundos
 #define MIN_WAIT_TIME 1             // tempo mínio de espera
+#define MIN_PLAYERS 2               // numero mínimo de jogadores
 
 
 #define ENVERROR -1
 
+// Flags de erro ao receber e converter tempo de jogo e tempo de espera
 enum CmdArgs {NO_ARGS, ERROR_GAME_TIME, ERROR_WAIT_TIME, ERROR_BOTH, MISSING_WAIT_TIME, OK};
 typedef enum CmdArgs CmdArgs;

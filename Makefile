@@ -36,7 +36,7 @@ global.o:
 	gcc -c -Wall -Wextra -pedantic global.c -o global.o
 
 #apaga ficheiros objeto e executáveis
-clear:
+clean:
 	rm jogo arbitro cliente *.o
 
 #apaga executáveis

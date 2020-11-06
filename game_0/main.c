@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <ctype.h>
+#include <signal.h>
 
 #include "../global_interface.h"
 #include "logic_interface.h"
@@ -12,12 +13,20 @@
 #include "../global.h"
 #include "user_interface.h"
 
+GameData game = {0, 0, 0, 0};
+
+//handler para signal
+void sig_handler(/*int sig*/){
+	//if(sig == SIGUSR1){ // pode ser suprimido, apenas SIGUSR1 é tratado
+	exit(game.points);
+    //}
+}
+
 int main()
 {
 	char output[OUTPUT_SIZE]; //outputs vários
 
 	Dictionary dict = {WORDS, sizeof WORDS / sizeof WORDS[0]};
-	GameData game = {0, 0, 0, 0};
 
 	char word[WORDSIZE];  //palavra a descobrir
 	char input[WORDSIZE]; //input do utilizador
@@ -25,12 +34,16 @@ int main()
 	//index da palavra escolhia aleatoriamente
 	srand((unsigned)time(NULL));
 
+	signal(SIGUSR1, sig_handler);
+
     print(HEADER, FD_OUT);
      
 	int i = 0;
 	while (i++ < 3) //jogo repete 3 vezes
 	{
 		int word_index = rand() % dict.size;
+
+		game.count = 0;
 
 		set_attempts(&game, dict.ptr[word_index]);
 		fill_word(word, game.size, "_");

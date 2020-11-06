@@ -9,9 +9,18 @@
 #define MIN_WAIT_TIME 1             // tempo mínio de espera
 #define MIN_PLAYERS 2               // numero mínimo de jogadores
 
-
-#define ENVERROR -1
-
 // Flags de erro ao receber e converter tempo de jogo e tempo de espera
 enum CmdArgs {NO_ARGS, ERROR_GAME_TIME, ERROR_WAIT_TIME, ERROR_BOTH, MISSING_WAIT_TIME, OK};
 typedef enum CmdArgs CmdArgs;
+
+//Flags de erro para variáveis de ambiente
+enum GameDirParsing{ENV_ERROR = -1, ENV_SUCCESS};
+typedef enum GameDirParsing GameDirParsing;
+
+//Estrutura para dados de configuração do servidor
+typedef struct{
+    time_t wait_time;
+    time_t game_duration;
+    char *game_dir;
+    int n_players;
+}ServerSettings;

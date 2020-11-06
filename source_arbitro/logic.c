@@ -7,14 +7,12 @@
 
 CmdArgs command_line_arguments(long *wait_time, long *game_duration, int argc, char **argv)
 {
-    CmdArgs a = OK;
+    CmdArgs a = NO_ARGS;
+    *wait_time = DEFAULT_WAIT_TIME;
+    *game_duration = DEFAULT_GAME_TIME;
     char *endptr;
     errno = 0;
 
-    if(argc < 2){
-        a = NO_ARGS;
-    }
-    
     if (argc > 1)
     {
         *game_duration = strtol(argv[1], &endptr, 10);
@@ -26,8 +24,8 @@ CmdArgs command_line_arguments(long *wait_time, long *game_duration, int argc, c
         else
         {
             a = MISSING_WAIT_TIME;
-        }      
-    }   
+        }
+    }
 
     if (argc > 2)
     {
@@ -40,7 +38,8 @@ CmdArgs command_line_arguments(long *wait_time, long *game_duration, int argc, c
             else
                 a = ERROR_WAIT_TIME;
         }
-        else a = OK;
+        else
+            a = OK;
     }
     return a;
 }
@@ -65,4 +64,15 @@ int get_maxplayer()
         }
     }
     return max_players;
+}
+
+GameDirParsing get_game_dir(char **game_dir)
+{
+    *game_dir = getenv(DIR_NAME);
+    if (*game_dir == NULL)
+    {
+        *game_dir = GAMEDIR_DEFAULT;
+        return ENV_ERROR;
+    }
+    return ENV_SUCCESS;
 }

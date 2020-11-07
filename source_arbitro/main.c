@@ -14,26 +14,39 @@ int main(int argc, char **argv)
     char output[OUTPUT_SIZE];
 
     ServerSettings server;
- 
+
     switch (command_line_arguments(&server.wait_time, &server.game_duration, argc, argv))
     {
     case NO_ARGS:
         print(NO_ARGS_OUT, FD_OUT);
+        sprintf(output, ERROR_WAIT_TIME_OUT, MIN_WAIT_TIME, DEFAULT_WAIT_TIME);
+        print(output, FD_OUT);
+        sprintf(output, ERROR_GAME_TIME_OUT, MIN_GAME_TIME, DEFAULT_GAME_TIME);
+        print(output, FD_OUT);
         print(DEFAULT_OUT, FD_OUT);
         break;
     case ERROR_GAME_TIME:
-        print(ERROR_GAME_TIME_OUT, FD_OUT);
+        sprintf(output, ERROR_GAME_TIME_OUT, MIN_GAME_TIME, DEFAULT_GAME_TIME);
+        print(output, FD_OUT);
         print(DEFAULT_OUT, FD_OUT);
         break;
     case ERROR_WAIT_TIME:
-        print(ERROR_WAIT_TIME_OUT, FD_OUT);
+        sprintf(output, ERROR_WAIT_TIME_OUT, MIN_WAIT_TIME, DEFAULT_WAIT_TIME);
+        print(output, FD_OUT);
         print(DEFAULT_OUT, FD_OUT);
         break;
     case ERROR_BOTH:
         print(ERROR_BOTH_OUT, FD_OUT);
+        sprintf(output, ERROR_WAIT_TIME_OUT, MIN_WAIT_TIME, DEFAULT_WAIT_TIME);
+        print(output, FD_OUT);
+        sprintf(output, ERROR_GAME_TIME_OUT, MIN_GAME_TIME, DEFAULT_GAME_TIME);
+        print(output, FD_OUT);
         print(DEFAULT_OUT, FD_OUT);
         break;
     case OK:
+        print(CORRECT_ARGS, FD_OUT);
+        break;
+    default:
         break;
     }
     sprintf(output, WAIT_TIME_OUT, server.wait_time);
@@ -46,21 +59,23 @@ int main(int argc, char **argv)
         sprintf(output, GAMEDIR_ERROR_OUT, server.game_dir);
         print(output, FD_OUT);
     }
-    else{
+    else
+    {
         sprintf(output, PARSED_GAMEDIR_OUT, server.game_dir);
         print(output, FD_OUT);
     }
 
     server.n_players = get_maxplayer();
 
-    if(server.n_players == ENV_ERROR){
+    if (server.n_players == ENV_ERROR)
+    {
         server.n_players = MAXPLAYER_DEFAULT;
         sprintf(output, MAXPLAYER_ERROR_OUT, MAXPLAYER_DEFAULT);
         print(output, FD_OUT);
     }
-    else{       
+    else
+    {
         sprintf(output, PARSED_MAXPLAYER_OUT, server.n_players);
         print(output, FD_OUT);
     }
-
 }

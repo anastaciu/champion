@@ -48,7 +48,7 @@ CmdArgs command_line_arguments(long *wait_time, long *game_duration, int argc, c
             {
                 return OK;
             }
-            else if ((a1 == ERROR_GAME_TIME && a4 == ERROR_GAME_TIME) && (a2 == ERROR_WAIT_TIME && a3 == ERROR_WAIT_TIME))
+            else if ((a1 == ERROR_GAME_TIME && a4 == ERROR_WAIT_TIME) && (a2 == ERROR_WAIT_TIME && a3 == ERROR_GAME_TIME))
             {
                 return ERROR_BOTH;
             }
@@ -67,7 +67,12 @@ CmdArgs command_line_arguments(long *wait_time, long *game_duration, int argc, c
         else if (a2 == OK)      
         {
             return ERROR_GAME_TIME;
-        }      
+        }
+        else
+        {
+            return ERROR_BOTH;
+        }
+              
     }
     return a;
 }

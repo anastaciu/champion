@@ -34,6 +34,7 @@ typedef struct{
 typedef struct{
     pid_t payer_pid;
     pid_t game_pid;
+    char game_name[MAX_LEN_NAME];
     char client_pipe[MAX_LEN_NAME];
     PlayerMsg p_msg;
 } GameInfo;

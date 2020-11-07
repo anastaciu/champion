@@ -2,44 +2,72 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "defaults.h"
 
-CmdArgs command_line_arguments(long *wait_time, long *game_duration, int argc, char **argv)
+CmdArgs _parse_arguments(char *opt, char *argv1, char *argv2, CmdArgs flag, long *value, int def, int min)
 {
-    CmdArgs a = NO_ARGS;
-    *wait_time = DEFAULT_WAIT_TIME;
-    *game_duration = DEFAULT_GAME_TIME;
     char *endptr;
     errno = 0;
+    CmdArgs a = OK;
 
-    if (argc > 1)
+    if (strcmp(argv1, opt) == 0)
     {
-        *game_duration = strtol(argv[1], &endptr, 10);
-        if (errno == ERANGE || *endptr != '\0' || *wait_time < MIN_GAME_TIME)
+        *value = strtol(argv2, &endptr, 10);
+        if (errno == ERANGE || *endptr != '\0' || *value < min)
         {
-            *game_duration = DEFAULT_GAME_TIME;
-            a = ERROR_GAME_TIME;
-        }
-        else
-        {
-            a = MISSING_WAIT_TIME;
+            *value = def;
+            a = flag;
         }
     }
+    else
+    {
+        a = flag;
+    }
+    return a;
+}
+
+CmdArgs command_line_arguments(long *wait_time, long *game_duration, int argc, char **argv)
+{
+    CmdArgs a = NO_ARGS, a1, a2, a3, a4;
+    *wait_time = DEFAULT_WAIT_TIME;
+    *game_duration = DEFAULT_GAME_TIME;
 
     if (argc > 2)
     {
-        *wait_time = strtol(argv[2], &endptr, 10);
-        if (errno == ERANGE || *endptr != '\0' || *wait_time < MIN_WAIT_TIME)
+        a1 = _parse_arguments("-g", argv[1], argv[2], ERROR_GAME_TIME, game_duration, DEFAULT_GAME_TIME, MIN_GAME_TIME);
+        a2 = _parse_arguments("-w", argv[1], argv[2], ERROR_WAIT_TIME, wait_time, DEFAULT_WAIT_TIME, MIN_WAIT_TIME);
+
+        if (argc > 4)
         {
-            *wait_time = DEFAULT_WAIT_TIME;
-            if (a == ERROR_GAME_TIME)
-                a = ERROR_BOTH;
-            else
-                a = ERROR_WAIT_TIME;
+            a3 = _parse_arguments("-g", argv[3], argv[4], ERROR_GAME_TIME, game_duration, DEFAULT_GAME_TIME, MIN_GAME_TIME);
+            a4 = _parse_arguments("-w", argv[3], argv[4], ERROR_WAIT_TIME, wait_time, DEFAULT_WAIT_TIME, MIN_WAIT_TIME);
+
+            if ((a1 == OK && a4 == OK) || (a2 == OK && a3 == OK))
+            {
+                return OK;
+            }
+            else if ((a1 == ERROR_GAME_TIME && a4 == ERROR_GAME_TIME) && (a2 == ERROR_WAIT_TIME && a3 == ERROR_WAIT_TIME))
+            {
+                return ERROR_BOTH;
+            }
+            else if ((a1 == ERROR_GAME_TIME && a3 == ERROR_GAME_TIME))
+            {
+                return ERROR_GAME_TIME;
+            }
+            else if ((a2 == ERROR_WAIT_TIME && a4 == ERROR_WAIT_TIME))
+            {
+                return ERROR_WAIT_TIME;
+            }
         }
-        else
-            a = OK;
+        else if( a1 == OK){
+            return ERROR_WAIT_TIME;
+        }
+        else if (a2 == OK)      
+        {
+            return ERROR_GAME_TIME;
+        }      
     }
     return a;
 }

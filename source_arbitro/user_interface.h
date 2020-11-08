@@ -4,7 +4,7 @@
 //mensagens de output
 #define NO_ARGS_OUT "Argumentos não introduzidos\n"
 #define ERROR_BOTH_OUT "Argumentos introduzidos incorretamente\n"
-#define CORRECT_ARGS "Argumentos introuzidos corretamente\n"
+#define CORRECT_ARGS "Ambos os argumentos introduzidos corretamente\n"
 #define ERROR_GAME_TIME_OUT "Tempo de jogo incorreto ou ausente, valor mínimo - %d, valor por defeito - %d\n"
 #define DEFAULT_OUT "Argumento(s) em falta definidos(s) por defeito\n"
 #define ERROR_WAIT_TIME_OUT "Tempo de espera incorreto ou ausente, valor mínimo - %d, valor por defeito - %d\n"

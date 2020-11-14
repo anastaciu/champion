@@ -36,7 +36,7 @@ int main()
 
 	signal(SIGUSR1, sig_handler);
 
-    print(HEADER, FD_OUT);
+    print(HEADER, STDOUT_FILENO);
      
 	int i = 0;
 	while (i++ < 3) //jogo repete 3 vezes
@@ -52,37 +52,37 @@ int main()
 		//ciclo principal
 		while (game.attempts)
 		{
-			print_user_interface(word, game.size, FD_OUT, SPACER, MENU);
-			size_t length = get_user_input(input, FD_IN, sizeof input);
+			print_user_interface(word, game.size, STDOUT_FILENO, SPACER, MENU);
+			size_t length = get_user_input(input, STDIN_FILENO, sizeof input);
 			int state = main_cycle(input, word, dict.ptr[word_index], length, &game);
 
 			switch (state)
 			{
 			case HELP:
-				print(HEADER, FD_OUT);
+				print(HEADER, STDOUT_FILENO);
 				break;
 			case REPEAT:
-				print(REPEAT_OUT, FD_OUT);
+				print(REPEAT_OUT, STDOUT_FILENO);
 				break;
 			case LETTER_NOT_FOUND:
 				sprintf(output, LETTER_NOT_FOUND_OUT, input[0], game.attempts);
-				print(output, FD_OUT);
+				print(output, STDOUT_FILENO);
 				break;
 			case WORD_FOUND:
 				sprintf(output, WORD_FOUND_OUT, dict.ptr[word_index], game.points);
-				print(output, FD_OUT);
+				print(output, STDOUT_FILENO);
 				break;
 			case LETTER_FOUND:
 				sprintf(output, LETTER_FOUND_OUT, input[0], game.attempts);
-				print(output, FD_OUT);
+				print(output, STDOUT_FILENO);
 				break;
 			case WRONG_WORD:
 				sprintf(output, WRONG_WORD_OUT, game.attempts);
-				print(output, FD_OUT);
+				print(output, STDOUT_FILENO);
 				break;
 			case GAME_OVER:
 				sprintf(output, GAME_OVER_OUT, dict.ptr[word_index], game.points);
-				print(output, FD_OUT);
+				print(output, STDOUT_FILENO);
 				break;
 			default:
 				break;

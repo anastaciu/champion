@@ -14,8 +14,8 @@ int main()
     
     player.player_pid = getpid();
 
-    print(NAME_PROMPT_OUT, FD_OUT);
-    get_user_input(player.name, FD_IN, MAX_LEN_NAME);
+    print(NAME_PROMPT_OUT, STDOUT_FILENO);
+    get_user_input(player.name, STDIN_FILENO, MAX_LEN_NAME);
     sprintf(output, USER_NAME_OUT USER_PID_OUT, player.name, player.player_pid);  
-    print(output, FD_OUT);
+    print(output, STDOUT_FILENO);
 }

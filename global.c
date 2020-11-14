@@ -10,6 +10,13 @@ void print(const char *str, int fd_out)
     fflush(stdout);
 }
 
+void _to_upper(char *str){
+    while(*str){
+        *str = toupper(*str);
+        str++;
+    }
+}
+
 void _clear_buffer(int fd)
 {
     struct pollfd pfd = {.fd = fd, .events = POLLIN};
@@ -28,22 +35,34 @@ void _clear_buffer(int fd)
 
 size_t get_user_input(char *input, int fd, int size)
 {
+    char *begin;
+    char *end;
+    size_t input_length;
     size_t read_chars;
     do
     {
         read_chars = read(fd, input, size);
-        input[strcspn(input, "\t\n ")] = '\0';
+        begin = input;
+        end = &input[read_chars - 1];
 
-    } while (strlen(input) < 1);
+        *(end--) = '\0'; 
 
-    input[read_chars - 1] = '\0';
-    size_t length = strcspn(input, "\t\n ");
-    input[length] = '\0';
+        while(end >= begin && isspace(*end)){                  
+            end--;
+        }
+        *(end + 1) = '\0';
 
-    for (size_t i = 0; i < strlen(input); i++)
-    {
-        input[i] = toupper(input[i]);
-    }
+        while(begin < end && isspace(*begin)){
+            begin++;
+        }
+
+        input_length = strlen(begin); 
+
+    } while (input_length < 1);
+
+    memcpy(input, begin, input_length + 1);
+    _to_upper(input);
     _clear_buffer(fd);
-    return length;
+
+    return input_length;
 }

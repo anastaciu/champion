@@ -1,7 +1,6 @@
 
 #define MAXPLAYER_DEFAULT 30        // número máximo de jogadores
 #define MAXPLAYER_NAME "MAXPLAYER"  // nome da variável ambiente
-#define GAMEDIR_DEFAULT "/"         // diretoria por defeito
 #define DIR_NAME "GAMEDIR"          // nome da variável de ambiente 
 #define DEFAULT_GAME_TIME 900       // tempo padrão de jogo em segundos
 #define MIN_GAME_TIME 120            // tempo de jogo mínimo em segundos

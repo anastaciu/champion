@@ -12,8 +12,8 @@ arbitro_logic.o: source_arbitro/logic.c source_arbitro/defaults.h
 	gcc -c -Wall -Wextra -pedantic source_arbitro/logic.c -o arbitro_logic.o
 
 #make do cliente
-cliente: cliente_main.o
-	gcc cliente_main.o global.o -o cliente
+cliente: cliente_main.o global.o
+	gcc -g cliente_main.o global.o -o cliente
 
 cliente_main.o: source_cliente/main.c source_cliente/user_interface.h global.h
 	gcc -c -Wall -Wextra -pedantic source_cliente/main.c -o cliente_main.o
@@ -41,7 +41,7 @@ clean:
 
 #apaga executáveis
 rmexecs:
-	rm jogo arbitro cliente *.o
+	rm jogo arbitro cliente
 
 #apaga ficheiros objeto
 rmobjs:

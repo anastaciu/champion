@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include <errno.h>
 #include <time.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "defaults.h"
 #include "logic_interface.h"
@@ -12,8 +14,7 @@
 
 int main(int argc, char **argv)
 {
-    remove(SERVER_LOG_FIFO);
-    if (!make_login_fifo(SERVER_LOG_FIFO))
+    if (mkfifo(SERVER_LOG_FIFO, 0777) == -1)
     {
         print(PIPE_ERROR, STDERR_FILENO);
         return EXIT_FAILURE;
@@ -22,7 +23,7 @@ int main(int argc, char **argv)
     char output[OUTPUT_SIZE];
     ServerSettings server;
     GameDirParsing gde;
-
+    
     switch (command_line_arguments(&server.wait_time, &server.game_duration, argc, argv))
     {
     case NO_ARGS:
@@ -87,10 +88,15 @@ int main(int argc, char **argv)
         print(output, STDOUT_FILENO);
     }
 
+    PlayerLog plr;
+
     getchar();
 
     if (gde == ENV_ERROR)
         free(server.game_dir);
+
+    
+
 
     remove(SERVER_LOG_FIFO);
 }

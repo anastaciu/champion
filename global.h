@@ -3,7 +3,9 @@
 #define OUTPUT_SIZE 150       // tamanho máximo do output e mensagens
 
 #define SERVER_LOG_FIFO "/tmp/login_fifo"     // nome do FIFO do servidor para login
-#define CLIENT_LOG_FIFO "/tmp/login_%d_fifo"  // nome do FIFO de login do cliente    
+#define CLIENT_LOG_FIFO "/tmp/login_%d_fifo"  // nome do FIFO de login do cliente
+
+#define ERROR_FIFO_OPEN "Erro a abrir FIFO %s"
 
 enum LogState{LOGGED, MAX_USERS}; // estados de login
 typedef enum LogState LogState;

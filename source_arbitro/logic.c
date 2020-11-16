@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
-#include <fcntl.h>
-#include <sys/stat.h>
 #include <unistd.h>
 #include <stdbool.h>
 
@@ -114,14 +112,4 @@ GameDirParsing get_game_dir(char **game_dir)
         }
     }  
     return ENV_SUCCESS;
-}
-
-bool make_login_fifo(const char *pipe_name)
-{
-    if (mkfifo(pipe_name, 0777) == -1)
-    {
-        return false;        
-    }
-    return true;
-
 }

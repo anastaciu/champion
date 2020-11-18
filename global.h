@@ -5,21 +5,14 @@
 #define SERVER_LOG_FIFO "/tmp/login_fifo"     // nome do FIFO do servidor para login
 #define CLIENT_LOG_FIFO "/tmp/login_%d_fifo"  // nome do FIFO de login do cliente
 
-enum LogState{LOGGED, MAX_USERS}; // estados de login
+enum LogState{LOGGED, MAX_USERS, SUCCESS}; // estados de login
 typedef enum LogState LogState;
 
 //dados da estrutura de login do cliente
 typedef struct{
-    char name[MAX_LEN_NAME];
-    char client_pipe[MAX_LEN_NAME];     
+    char name[MAX_LEN_NAME]; 
     pid_t player_pid;
 }PlayerLog;
-
-//resposta a tentativa de login de cliente
-typedef struct{
-    char pipe_name[MAX_LEN_NAME];
-    LogState state;
-}LogResponse;
 
 //dados a enviar do servidor ao cliente
 typedef struct{

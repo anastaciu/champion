@@ -13,41 +13,41 @@
 int main()
 {
     PlayerLog player;
-    LogResponse log_response;
-
+    LogState log_response;
     int srv_fifo_fd;
     int clt_fifo_fd;
-    int fflags;
     size_t log_res;
-
+    char client_fifo[MAX_LEN_NAME];
     char output[OUTPUT_SIZE];
 
     player.player_pid = getpid();
 
-    sprintf(player.client_pipe, CLIENT_LOG_FIFO, player.player_pid);
+    sprintf(client_fifo, CLIENT_LOG_FIFO, player.player_pid);
 
-    if (mkfifo(player.client_pipe, 0777) == -1)
+    if (mkfifo(client_fifo, 0777) == -1)
     {
         perror(PIPE_ERROR);
         return EXIT_FAILURE;
     }
 
-    if ((srv_fifo_fd = open(SERVER_LOG_FIFO, O_WRONLY)) == -1)
+    srv_fifo_fd = open(SERVER_LOG_FIFO, O_WRONLY);
+
+    if (srv_fifo_fd == -1)
     {
         perror(ERROR_SERVER_FIFO);
+        unlink(client_fifo);
         return EXIT_FAILURE;
     }
 
-    if ((clt_fifo_fd = open(player.client_pipe, O_RDONLY | O_NONBLOCK)) == -1)
+    clt_fifo_fd = open(client_fifo, O_RDWR);
+
+    if (clt_fifo_fd == -1)
     {
         perror(ERROR_CLIENT_FIFO);
         close(srv_fifo_fd);
-        unlink(player.client_pipe);
+        unlink(client_fifo);
         return (EXIT_FAILURE);
     }
-
-    fflags = fcntl(clt_fifo_fd, F_GETFL);
-    fflags ^= O_NONBLOCK;
 
     print(NAME_PROMPT_OUT, STDOUT_FILENO);
     get_user_input(player.name, STDIN_FILENO, MAX_LEN_NAME);
@@ -62,14 +62,18 @@ int main()
     fflush(stdout);
     if (log_res == sizeof log_response)
     {
+
         print("Login efetuado", STDOUT_FILENO);
     }
     else
     {
-        print("Erro login", STDERR_FILENO);
+        print("Dados corrompidos", STDERR_FILENO);
     }
+    getchar();
 
     close(clt_fifo_fd);
     close(srv_fifo_fd);
-    unlink(player.client_pipe);
+    unlink(client_fifo);
+
+   
 }

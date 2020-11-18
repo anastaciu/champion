@@ -17,7 +17,8 @@
 int main(int argc, char **argv)
 {
 
-    remove(SERVER_LOG_FIFO);
+    remove(SERVER_LOG_FIFO); /*TIRAR*/
+
     if (mkfifo(SERVER_LOG_FIFO, 0777) == -1)
     {
         print(PIPE_ERROR, STDERR_FILENO);
@@ -29,10 +30,10 @@ int main(int argc, char **argv)
     GameDirParsing gde;
     int srv_fifo_fd;
     int clt_fifo_fd;
-    int keep_alive_fd;
     size_t log_res;
     PlayerLog player;
-    LogResponse log_response;
+    LogState log_response;
+    char client_pipe[MAX_LEN_NAME];
 
     switch (command_line_arguments(&server.wait_time, &server.game_duration, argc, argv))
     {
@@ -99,20 +100,11 @@ int main(int argc, char **argv)
         print(output, STDOUT_FILENO);
     }
 
-    if ((srv_fifo_fd = open(SERVER_LOG_FIFO, O_RDONLY)) == -1)
+    if ((srv_fifo_fd = open(SERVER_LOG_FIFO, O_RDWR)) == -1)
     {
         print("Erro ao abrir FIFO", STDERR_FILENO);
         unlink(SERVER_LOG_FIFO);
         return EXIT_FAILURE;
-    }
-
-    keep_alive_fd = open(SERVER_LOG_FIFO, O_WRONLY);
-    if (keep_alive_fd == -1)
-    {
-        print("Erro ao abir ficheiro", STDERR_FILENO);
-        unlink(SERVER_LOG_FIFO);
-        close(srv_fifo_fd);
-        exit(EXIT_FAILURE);
     }
 
     while (1)
@@ -125,31 +117,37 @@ int main(int argc, char **argv)
         }
         else
         {
-            print(player.client_pipe, STDOUT_FILENO);
             print(player.name, STDOUT_FILENO);
             printf("%d", player.player_pid);
             fflush(stdout);
         }
 
-        clt_fifo_fd = open(player.client_pipe, O_WRONLY | O_NONBLOCK);
+        sprintf(client_pipe, CLIENT_LOG_FIFO, player.player_pid);
+
+        clt_fifo_fd = open(client_pipe, O_WRONLY);
 
         if (clt_fifo_fd != -1)
         {
-            log_response.state = 10;
-
-            //write(clt_fifo_fd, &log_response, sizeof log_response);
+            log_response = LOGGED;
+            log_res = write(clt_fifo_fd, &log_response, sizeof log_response);
+            if(log_res == sizeof log_response){
+                printf("resposta enviada com, %ld bytes", log_res);
+                fflush(stdout);
+            }
+            else{
+                printf("resposta não enviada com, %ld bytes", log_res);
+                fflush(stdout);
+            }
             close(clt_fifo_fd);
-
         }
         else
         {
             perror("Erro ao abrir FIFO do cliente");
             exit(EXIT_FAILURE);
         }
-
     }
 
-    getchar();
-
-    remove(SERVER_LOG_FIFO);
+    close(srv_fifo_fd);
+    unlink(SERVER_LOG_FIFO);
+    
 }

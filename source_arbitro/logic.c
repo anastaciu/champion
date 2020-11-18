@@ -109,7 +109,7 @@ GameDirParsing get_game_dir(char **game_dir)
         if ((*game_dir = getcwd(NULL, 0)) != NULL)
         {
             return ENV_ERROR;
-        }
+        }      
     }  
     return ENV_SUCCESS;
 }

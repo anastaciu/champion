@@ -1,18 +1,17 @@
 
-#define MAX_LEN_NAME 50      // tamanho máximo de nomes
+#define MAX_LEN_NAME 50      // tamanho máximo de nomes e nome do pipe
 #define OUTPUT_SIZE 150       // tamanho máximo do output e mensagens
 
 #define SERVER_LOG_FIFO "/tmp/login_fifo"     // nome do FIFO do servidor para login
 #define CLIENT_LOG_FIFO "/tmp/login_%d_fifo"  // nome do FIFO de login do cliente
-
-#define ERROR_FIFO_OPEN "Erro a abrir FIFO %s"
 
 enum LogState{LOGGED, MAX_USERS}; // estados de login
 typedef enum LogState LogState;
 
 //dados da estrutura de login do cliente
 typedef struct{
-    char name[MAX_LEN_NAME];     
+    char name[MAX_LEN_NAME];
+    char client_pipe[MAX_LEN_NAME];     
     pid_t player_pid;
 }PlayerLog;
 

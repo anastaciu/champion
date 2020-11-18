@@ -12,6 +12,7 @@
 #include "dictionary.h"
 #include "../global.h"
 #include "user_interface.h"
+#include "ui_constants.h"
 
 GameData game = {0, 0, 0, 0};
 

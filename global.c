@@ -41,9 +41,9 @@ size_t get_user_input(char *input, int fd, int size)
     size_t read_chars;
     do
     {
-        read_chars = read(fd, input, size);
+        read_chars = read(fd, input, size - 1);
         begin = input;
-        end = &input[read_chars - 1];
+        end = &input[read_chars];
 
         *(end--) = '\0'; 
 

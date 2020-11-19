@@ -23,8 +23,8 @@ typedef struct{
 //dados do cliente mantidos no servidor
 typedef struct{
     pid_t payer_pid;
+    char name[MAX_LEN_NAME];
     pid_t game_pid;
     char game_name[MAX_LEN_NAME];
-    char client_pipe[MAX_LEN_NAME];
     PlayerMsg p_msg;
-} GameInfo;
+} PlayerInfo;

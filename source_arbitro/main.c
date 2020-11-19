@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <string.h>
 
 #include "defaults.h"
 #include "logic_interface.h"
@@ -33,6 +34,7 @@ int main(int argc, char **argv)
     size_t log_res;
     PlayerLog player;
     LogState log_response;
+
     char client_pipe[MAX_LEN_NAME];
 
     switch (command_line_arguments(&server.wait_time, &server.game_duration, argc, argv))
@@ -100,6 +102,9 @@ int main(int argc, char **argv)
         print(output, STDOUT_FILENO);
     }
 
+    PlayerInfo clients[server.n_players];
+    server.player_count = 0;
+
     if ((srv_fifo_fd = open(SERVER_LOG_FIFO, O_RDWR)) == -1)
     {
         print("Erro ao abrir FIFO", STDERR_FILENO);
@@ -117,37 +122,60 @@ int main(int argc, char **argv)
         }
         else
         {
-            print(player.name, STDOUT_FILENO);
-            printf("%d", player.player_pid);
-            fflush(stdout);
-        }
-
-        sprintf(client_pipe, CLIENT_LOG_FIFO, player.player_pid);
-
-        clt_fifo_fd = open(client_pipe, O_WRONLY);
-
-        if (clt_fifo_fd != -1)
-        {
-            log_response = LOGGED;
-            log_res = write(clt_fifo_fd, &log_response, sizeof log_response);
-            if(log_res == sizeof log_response){
-                printf("resposta enviada com, %ld bytes", log_res);
-                fflush(stdout);
+            log_response = SUCCESS;
+            if (server.n_players == server.player_count)
+            {
+                log_response = MAX_USERS;
             }
-            else{
-                printf("resposta não enviada com, %ld bytes", log_res);
-                fflush(stdout);
+            if (server.player_count > 0)
+            {
+                for (int i = 0; i < server.player_count; i++)
+                {
+                    if (strcmp(player.name, clients[i].name) == 0)
+                    {
+                        log_response = LOGGED;
+                        break;
+                    }
+                }
             }
-            close(clt_fifo_fd);
-        }
-        else
-        {
-            perror("Erro ao abrir FIFO do cliente");
-            exit(EXIT_FAILURE);
+
+            if (log_response != LOGGED && log_response != MAX_USERS)
+            {               
+                clients[server.player_count].payer_pid = player.player_pid;
+                strcpy(clients[server.player_count].name, player.name);
+                //print(clients[server.player_count].name, STDOUT_FILENO);
+                //printf(" %d %d ", clients[server.player_count].payer_pid, server.player_count);
+                //fflush(stdout);
+                server.player_count++;
+
+
+            }
+
+            sprintf(client_pipe, CLIENT_LOG_FIFO, player.player_pid);
+
+            clt_fifo_fd = open(client_pipe, O_WRONLY);
+
+            if (clt_fifo_fd != -1)
+            {
+                log_res = write(clt_fifo_fd, &log_response, sizeof log_response);
+                if (log_res == sizeof log_response)
+                {
+                    printf("resposta enviada com sucesso %ld bytes\n", log_res);
+                    fflush(stdout);
+                }
+                close(clt_fifo_fd);
+            }
+            else
+            {
+                perror("Erro ao abrir FIFO do cliente");
+                exit(EXIT_FAILURE);
+            }
+
+            
         }
     }
 
     close(srv_fifo_fd);
     unlink(SERVER_LOG_FIFO);
-    
+    remove(SERVER_LOG_FIFO);
 }

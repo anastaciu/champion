@@ -57,23 +57,40 @@ int main()
     write(srv_fifo_fd, &player, sizeof player);
 
     log_res = read(clt_fifo_fd, &log_response, sizeof log_response);
-
-    printf("% ld, %ld ", sizeof log_response, log_res);
+  
     fflush(stdout);
     if (log_res == sizeof log_response)
     {
-
-        print("Login efetuado", STDOUT_FILENO);
+        switch (log_response)
+        {
+        case SUCCESS:
+            print("Login efectuado com sucesso...\n", STDOUT_FILENO);
+            break;
+        case LOGGED:
+            print("Já existe um cliente com o mesmo nome...\n", STDERR_FILENO);
+            exit(EXIT_FAILURE);
+            break;
+        case MAX_USERS:
+            print("Atingido o número máximo de clientes, tente mais tarde...\n", STDERR_FILENO);
+            exit(EXIT_FAILURE);
+            break;
+        
+        default:
+            break;
+        }
     }
     else
     {
         print("Dados corrompidos", STDERR_FILENO);
+        exit(EXIT_FAILURE);
+
     }
     getchar();
 
     close(clt_fifo_fd);
     close(srv_fifo_fd);
     unlink(client_fifo);
+    remove(client_fifo);
 
    
 }

@@ -22,4 +22,5 @@ typedef struct{
     time_t game_duration;
     char *game_dir;
     int n_players;
+    int player_count;
 }ServerSettings;

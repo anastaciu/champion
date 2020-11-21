@@ -8,5 +8,8 @@ CmdArgs command_line_arguments(long *wait_time, long *duration, int argc, char *
 //Verifica variável de ambiente MAXPLAYER e estabelece o seu valor, retorna -1 se valor for inválido
 int get_maxplayer();
 
-////Verifica variável de ambiente MAXPLAYER e estabelece o seu valor retorna flags de sucesso ou erro
+//Verifica variável de ambiente MAXPLAYER e estabelece o seu valor retorna flags de sucesso ou erro
 GameDirParsing get_game_dir(char **game_dir);
+
+//Função para threads de login
+void *login_thread(void *arg);

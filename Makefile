@@ -3,7 +3,7 @@ all: arbitro cliente jogo
 	
 # make do arbitro
 arbitro: arbitro_main.o arbitro_logic.o global.o
-	gcc arbitro_main.o arbitro_logic.o global.o -o arbitro
+	gcc -pthread arbitro_main.o arbitro_logic.o global.o -o arbitro
 
 arbitro_main.o: source_arbitro/main.c source_arbitro/defaults.h source_arbitro/user_interface.h global.h source_arbitro/ui_constants.h
 	gcc -c -Wall -Wextra -pedantic source_arbitro/main.c -o arbitro_main.o

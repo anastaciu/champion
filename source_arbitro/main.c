@@ -7,11 +7,11 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <string.h>
+#include <pthread.h>
 
 #include "defaults.h"
 #include "logic_interface.h"
 #include "../global_interface.h"
-#include "../global.h"
 #include "user_interface.h"
 #include "ui_constants.h"
 
@@ -26,17 +26,19 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    char output[OUTPUT_SIZE];
-    ServerSettings server;
+    char output[OUTPUT_SIZE]; //char array para outputs vários
+    ServerSettings server;    //definições do servidor
+    PlayerInfo clients[server.n_players]; //array de clientes
     GameDirParsing gde;
-    int srv_fifo_fd;
-    int clt_fifo_fd;
-    size_t log_res;
-    PlayerLog player;
-    LogState log_response;
+    //size_t log_res;
 
-    char client_pipe[MAX_LEN_NAME];
+    LoginThr login;
 
+    //LogState log_response;
+
+    server.player_count = 0; //reset do número de jogadores ligados ao servidor
+
+    
     switch (command_line_arguments(&server.wait_time, &server.game_duration, argc, argv))
     {
     case NO_ARGS:
@@ -79,7 +81,6 @@ int main(int argc, char **argv)
     if ((gde = get_game_dir(&server.game_dir)) == ENV_ERROR)
     {
         sprintf(output, GAMEDIR_ERROR_OUT, server.game_dir);
-        free(server.game_dir);
         print(output, STDOUT_FILENO);
     }
     else
@@ -102,17 +103,32 @@ int main(int argc, char **argv)
         print(output, STDOUT_FILENO);
     }
 
-    PlayerInfo clients[server.n_players];
-    server.player_count = 0;
+    login.keep_alive = 1;
+    login.logged_users = clients;
+    login.server_settings = &server;
+    
+ 
+/*     int srv_fifo_fd;
+    int clt_fifo_fd;
+
+    PlayerLog player;
+    char client_pipe[MAX_LEN_NAME]; 
 
     if ((srv_fifo_fd = open(SERVER_LOG_FIFO, O_RDWR)) == -1)
     {
         print("Erro ao abrir FIFO", STDERR_FILENO);
         unlink(SERVER_LOG_FIFO);
         return EXIT_FAILURE;
-    }
+    } */
 
-    while (1)
+    //cria thread de login
+    if (pthread_create(&login.tid, NULL, login_thread, (void*) &login)) {
+        perror("\nErro na criação da thread ");
+        remove(SERVER_LOG_FIFO);
+        exit(EXIT_FAILURE);
+    }
+  
+    /* while (1)
     {
         log_res = read(srv_fifo_fd, &player, sizeof player);
         if (log_res < sizeof player)
@@ -169,13 +185,28 @@ int main(int argc, char **argv)
             {
                 perror("Erro ao abrir FIFO do cliente");
                 exit(EXIT_FAILURE);
-            }
-
-            
+            }          
         }
+    } */
+
+    //close(srv_fifo_fd);
+
+    char dummy[10];
+
+    while(1){
+        printf(">");
+        fgets(dummy, sizeof dummy, stdin);
     }
 
-    close(srv_fifo_fd);
+
+    login.keep_alive = 0;
+    pthread_join(login.tid, &login.retval);
+
+    if(gde == ENV_ERROR)
+    {
+        free(server.game_dir);
+    }
+
     unlink(SERVER_LOG_FIFO);
     remove(SERVER_LOG_FIFO);
 }

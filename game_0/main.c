@@ -48,12 +48,11 @@ int main()
 
 		set_attempts(&game, dict.ptr[word_index]);
 		fill_word(word, game.size, "_");
-		sleep(1);
 
 		//ciclo principal
 		while (game.attempts)
 		{
-			print_user_interface(word, game.size, STDOUT_FILENO, SPACER, MENU);
+			print_user_interface(word, game.size, SPACER, MENU);
 			size_t length = get_user_input(input, STDIN_FILENO, sizeof input);
 			int state = main_cycle(input, word, dict.ptr[word_index], length, &game);
 

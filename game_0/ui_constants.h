@@ -17,7 +17,7 @@
 |   Caso acerte, os pontos das letras descobertas não serão contabilizados    |\n\
 |    Adivinhar a palavra tem uma pontuação de 10 pontos + 2 x tentativas      |\n\
 | Adivinhar todas as letras tem uma pontuação de 5 pontos + 1 x tentativas    |\n\
-+-----------------------------------------------------------------------------+"
++-----------------------------------------------------------------------------+\n"
 
 #define MENU "\n\n* Escoha uma letra\n* ? para ver regras\n* Ou tente adivinhar a palavra\n>"
 #define LETTER_FOUND_OUT "\n\t\t'%c' foi encontrado. Continua com %zu tentativas"

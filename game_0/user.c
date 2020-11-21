@@ -3,36 +3,45 @@
 #include <string.h>
 #include <poll.h>
 #include <ctype.h>
+#include <stdlib.h>
 
 #include "../global_interface.h"
 
-void print_chars(size_t size, const char *c, int fd_out)
+char *print_chars(size_t size, const char c)
 {
-    for (size_t i = 0; i < size; i++)
-        write(fd_out, c, 2);
-    fflush(stdout);
+    char *temp_chars = malloc(size + 1);
+    size_t i = 0;
+    for (; i < size; i++)
+        temp_chars[i] = c;
+    temp_chars[i] = '\0';
+    return temp_chars;
 }
 
-void print_word(size_t size, const char *str, int fd_out)
+char* print_word(size_t size, const char *str)
 {
-    for (size_t i = 0; i < size; i++)
+    char *t_str = malloc(size * 2 + 2);
+    size_t i = 0, j = 0;
+    for ( ; i < size; i++, j += 2)
     {
-        write(fd_out, &str[i], 1);
-        write(fd_out, " ", 1);
+        t_str[j] = str[i];
+        t_str[j + 1] = ' ';
     }
-    write(fd_out, "\n", 1);
-    fflush(stdout);
+    t_str[j] = '\n';
+    t_str[j + 1] = '\0';
+    return t_str;
 }
 
-void print_user_interface(const char *word, size_t size, int fd, const char *spacer, const char *menu)
+void print_user_interface(const char *word, size_t size, const char *spacer, const char *menu)
 {
-    print(spacer, fd);
-    print_chars(size * 2 - 1, "*", fd);
-    print(spacer, fd);
-    print_word(size, word, fd);
-    print(spacer, fd);
-    print_chars(size * 2 - 1, "*", fd);
-    print(menu, fd);
+    char temp_ui[2048];   
+    char *temp = print_word(size, word);
+    char *temp_chars = print_chars(size * 2 - 1, '*');
+    sprintf(temp_ui, "%s%s%s%s%s%s",  spacer, temp_chars, spacer, temp, spacer, temp_chars);
+    free(temp);
+    free(temp_chars);
+    print(temp_ui, STDOUT_FILENO);
+    print(menu, STDOUT_FILENO);
+    
 }
 
 void fill_word(char *str, size_t size, const char *c)

@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <dirent.h>
 
 #include "defaults.h"
 
@@ -131,8 +132,8 @@ void *login_thread(void *arg)
 
     if ((srv_fifo_fd = open(SERVER_LOG_FIFO, O_RDWR)) == -1)
     {
-        fprintf(stderr, "Erro ao abrir FIFO");
-        unlink(SERVER_LOG_FIFO);
+        fprintf(stderr, "Erro ao abrir FIFO\n");
+        remove(SERVER_LOG_FIFO);
         exit(EXIT_FAILURE);
     }
 
@@ -141,7 +142,7 @@ void *login_thread(void *arg)
         log_res = read(srv_fifo_fd, &player, sizeof player);
         if (log_res < sizeof player)
         {
-            fprintf(stderr, "Dados corrompidos");
+            fprintf(stderr, "Dados do cliente corrompidos\n");
             exit(EXIT_FAILURE);
         }
         else
@@ -179,12 +180,54 @@ void *login_thread(void *arg)
                 log_res = write(clt_fifo_fd, &log_response, sizeof log_response);
                 if (log_res != sizeof log_response)
                 {
-                    fprintf(stderr, "Erro ao comunicar com o cliente");
-                    //tratar erros
+                    fprintf(stderr, "Erro na resposta ao cliente\n");
                     exit(EXIT_FAILURE);
                 }
+                close(clt_fifo_fd);
+            }
+            else
+            {
+                perror("Erro ao abrir FIFO do cliente");
+                exit(EXIT_FAILURE);
             }
         }
-        close(srv_fifo_fd);
-        return NULL;
     }
+    close(srv_fifo_fd);
+    return NULL;
+}
+
+char **list_games(const char *path, int *n_games)
+{
+    char **games;
+    int name_size;
+    int i = 0;
+
+    struct dirent *dp;
+    DIR *dir = opendir(path);
+
+    if (!dir)
+    {
+        fprintf(stderr, "Erro, directoria de jogos inexistente\n");
+        exit(EXIT_FAILURE);
+    }
+    while ((dp = readdir(dir)) != NULL)
+    {
+        if (dp->d_name[0] == 'a' && dp->d_name[1] == 'r')
+        {
+            if (!(games = realloc(games, (i + 1))))
+            {
+                perror("realloc");
+            }
+            
+            name_size = strlen(dp->d_name) + 1;
+            char game_name[name_size + 2];
+            sprintf(game_name, "%s%s", "./", dp->d_name);
+            games[i] = malloc(name_size + 2);
+            memcpy(games[i], game_name, name_size + 2);
+            i++;
+        }
+    }
+    *n_games = i;
+    closedir(dir);
+    return games;
+}

@@ -13,3 +13,6 @@ GameDirParsing get_game_dir(char **game_dir);
 
 //Função para threads de login
 void *login_thread(void *arg);
+
+//Retorna a lista de nomes de ficheiros presentes na diretoria path
+char **list_games(const char *path, int *n_games);

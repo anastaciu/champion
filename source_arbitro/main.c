@@ -15,6 +15,7 @@
 #include "user_interface.h"
 #include "ui_constants.h"
 
+
 int main(int argc, char **argv)
 {
 
@@ -26,19 +27,17 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    char output[OUTPUT_SIZE]; //char array para outputs vários
-    ServerSettings server;    //definições do servidor
+    char output[OUTPUT_SIZE];             //char array para outputs vários
+    ServerSettings server;                //definições do servidor
     PlayerInfo clients[server.n_players]; //array de clientes
-    GameDirParsing gde;
-    //size_t log_res;
 
-    LoginThr login;
+    GameDirParsing gde; //variavel de controlo para rotina de obtenção de variável de ambiente GAMEDIR
 
-    //LogState log_response;
+    LoginThr login; // estrutura para thread de login de clientes
 
     server.player_count = 0; //reset do número de jogadores ligados ao servidor
 
-    
+    //rotina de obtenção de argumentos da linha de comandos
     switch (command_line_arguments(&server.wait_time, &server.game_duration, argc, argv))
     {
     case NO_ARGS:
@@ -78,6 +77,7 @@ int main(int argc, char **argv)
     sprintf(output, GAME_DURATION_OUT, server.game_duration);
     print(output, STDOUT_FILENO);
 
+    //Rotina de obtenção da variável de ambiente GAMEDIR
     if ((gde = get_game_dir(&server.game_dir)) == ENV_ERROR)
     {
         sprintf(output, GAMEDIR_ERROR_OUT, server.game_dir);
@@ -89,6 +89,18 @@ int main(int argc, char **argv)
         print(output, STDOUT_FILENO);
     }
 
+    //Procurar jogos na diretoria definida
+    int n_games;
+    char **games = list_games(server.game_dir, &n_games);
+    
+    for(int i = 0; i < n_games; i++){
+        printf("%s\n", games[i]);
+    }
+
+    printf("%d\n", n_games);
+
+
+    //Rotina de obtenção da variável de ambiente MAXPLAYER
     server.n_players = get_maxplayer();
 
     if (server.n_players == ENV_ERROR)
@@ -103,110 +115,41 @@ int main(int argc, char **argv)
         print(output, STDOUT_FILENO);
     }
 
+    //Setup de dados para a thread de login
     login.keep_alive = 1;
     login.logged_users = clients;
     login.server_settings = &server;
-    
- 
-/*     int srv_fifo_fd;
-    int clt_fifo_fd;
 
-    PlayerLog player;
-    char client_pipe[MAX_LEN_NAME]; 
-
-    if ((srv_fifo_fd = open(SERVER_LOG_FIFO, O_RDWR)) == -1)
+    //Criação da thread de login
+    if (pthread_create(&login.tid, NULL, login_thread, (void *)&login))
     {
-        print("Erro ao abrir FIFO", STDERR_FILENO);
-        unlink(SERVER_LOG_FIFO);
-        return EXIT_FAILURE;
-    } */
-
-    //cria thread de login
-    if (pthread_create(&login.tid, NULL, login_thread, (void*) &login)) {
         perror("\nErro na criação da thread ");
         remove(SERVER_LOG_FIFO);
         exit(EXIT_FAILURE);
     }
-  
-    /* while (1)
-    {
-        log_res = read(srv_fifo_fd, &player, sizeof player);
-        if (log_res < sizeof player)
-        {
-            print("Dados corrompidos", STDERR_FILENO);
-            exit(EXIT_FAILURE);
-        }
-        else
-        {
-            log_response = SUCCESS;
-            if (server.n_players == server.player_count)
-            {
-                log_response = MAX_USERS;
-            }
-            if (server.player_count > 0)
-            {
-                for (int i = 0; i < server.player_count; i++)
-                {
-                    if (strcmp(player.name, clients[i].name) == 0)
-                    {
-                        log_response = LOGGED;
-                        break;
-                    }
-                }
-            }
-
-            if (log_response != LOGGED && log_response != MAX_USERS)
-            {               
-                clients[server.player_count].payer_pid = player.player_pid;
-                strcpy(clients[server.player_count].name, player.name);
-                //print(clients[server.player_count].name, STDOUT_FILENO);
-                //printf(" %d %d ", clients[server.player_count].payer_pid, server.player_count);
-                //fflush(stdout);
-                server.player_count++;
-
-
-            }
-
-            sprintf(client_pipe, CLIENT_LOG_FIFO, player.player_pid);
-
-            clt_fifo_fd = open(client_pipe, O_WRONLY);
-
-            if (clt_fifo_fd != -1)
-            {
-                log_res = write(clt_fifo_fd, &log_response, sizeof log_response);
-                if (log_res == sizeof log_response)
-                {
-                    printf("resposta enviada com sucesso %ld bytes\n", log_res);
-                    fflush(stdout);
-                }
-                close(clt_fifo_fd);
-            }
-            else
-            {
-                perror("Erro ao abrir FIFO do cliente");
-                exit(EXIT_FAILURE);
-            }          
-        }
-    } */
-
-    //close(srv_fifo_fd);
 
     char dummy[10];
 
-    while(1){
+
+    while (1)
+    {
         printf(">");
         fgets(dummy, sizeof dummy, stdin);
     }
 
-
     login.keep_alive = 0;
     pthread_join(login.tid, &login.retval);
 
-    if(gde == ENV_ERROR)
+    if (gde == ENV_ERROR)
     {
         free(server.game_dir);
     }
 
     unlink(SERVER_LOG_FIFO);
     remove(SERVER_LOG_FIFO);
+
+    for(int i = 0; i < n_games; i++){
+        free(games[i]);
+    }
+    free(games);
 }

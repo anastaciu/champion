@@ -1,5 +1,5 @@
 #make todos os executáveis
-all: arbitro cliente jogo
+all: arbitro cliente g_forca
 	
 # make do arbitro
 arbitro: arbitro_main.o arbitro_logic.o global.o
@@ -19,8 +19,8 @@ cliente_main.o: source_cliente/main.c source_cliente/user_interface.h global.h s
 	gcc -c -Wall -Wextra -pedantic source_cliente/main.c -o cliente_main.o
 
 #make do jogo game_000
-jogo: game_user.o game_000_main.o game_logic.o global.o
-	gcc game_user.o game_000_main.o game_logic.o global.o -o jogo
+g_forca: game_user.o game_000_main.o game_logic.o global.o
+	gcc game_user.o game_000_main.o game_logic.o global.o -o g_forca
 
 game_000_main.o: game_0/main.c game_0/dictionary.h game_0/user_interface.h global.h game_0/defaults.h game_0/ui_constants.h
 	gcc -c -Wall -Wextra -pedantic game_0/main.c -o game_000_main.o
@@ -37,11 +37,11 @@ global.o: global.c
 
 #apaga ficheiros objeto e executáveis
 clean:
-	rm jogo arbitro cliente *.o
+	rm g_forca arbitro cliente *.o
 
 #apaga executáveis
 rmexecs:
-	rm jogo arbitro cliente
+	rm g_forca arbitro cliente
 
 #apaga ficheiros objeto
 rmobjs:

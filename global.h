@@ -1,6 +1,7 @@
 
 #define MAX_LEN_NAME 50      // tamanho máximo de nomes e nome do pipe
-#define OUTPUT_SIZE 150       // tamanho máximo do output e mensagens
+#define OUTPUT_SIZE 150      // tamanho máximo do output e mensagens
+#define INPUT_SIZE 100       // tmanho de input para comandos 
 
 #define SERVER_LOG_FIFO "/tmp/login_fifo"     // nome do FIFO do servidor para login
 #define CLIENT_LOG_FIFO "/tmp/login_%d_fifo"  // nome do FIFO de login do cliente

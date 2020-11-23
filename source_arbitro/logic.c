@@ -134,7 +134,7 @@ void *login_thread(void *arg)
     {
         fprintf(stderr, "Erro ao abrir FIFO\n");
         remove(SERVER_LOG_FIFO);
-        exit(EXIT_FAILURE);
+        return NULL;
     }
 
     while (l_thrd->keep_alive == 1)
@@ -143,7 +143,7 @@ void *login_thread(void *arg)
         if (log_res < sizeof player)
         {
             fprintf(stderr, "Dados do cliente corrompidos\n");
-            exit(EXIT_FAILURE);
+            return NULL;
         }
         else
         {
@@ -181,14 +181,14 @@ void *login_thread(void *arg)
                 if (log_res != sizeof log_response)
                 {
                     fprintf(stderr, "Erro na resposta ao cliente\n");
-                    exit(EXIT_FAILURE);
+                    return NULL;
                 }
                 close(clt_fifo_fd);
             }
             else
             {
                 perror("Erro ao abrir FIFO do cliente");
-                exit(EXIT_FAILURE);
+                return NULL;
             }
         }
     }
@@ -202,31 +202,31 @@ char **list_games(const char *path, int *n_games)
     int name_size;
     int i = 0;
 
-    struct dirent *dp;
+    struct dirent *d;
     DIR *dir = opendir(path);
 
     if (!dir)
     {
-        fprintf(stderr, "Erro, directoria de jogos inexistente\n");
-        exit(EXIT_FAILURE);
+        return NULL;
     }
-    while ((dp = readdir(dir)) != NULL)
+    while ((d = readdir(dir)) != NULL)
     {
-        if (dp->d_name[0] == 'a' && dp->d_name[1] == 'r')
+        if (d->d_name[0] == 'g' && d->d_name[1] == '_')
         {
             if (!(games = realloc(games, (i + 1))))
             {
-                perror("realloc");
+                return NULL;
             }
             
-            name_size = strlen(dp->d_name) + 1;
+            name_size = strlen(d->d_name) + 1;
             char game_name[name_size + 2];
-            sprintf(game_name, "%s%s", "./", dp->d_name);
+            sprintf(game_name, "%s%s", "./", d->d_name);
             games[i] = malloc(name_size + 2);
             memcpy(games[i], game_name, name_size + 2);
             i++;
         }
     }
+
     *n_games = i;
     closedir(dir);
     return games;

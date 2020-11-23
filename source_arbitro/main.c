@@ -28,6 +28,7 @@ int main(int argc, char **argv)
     }
 
     char output[OUTPUT_SIZE];             //char array para outputs vários
+    char input[INPUT_SIZE];               //char array para inputs
     ServerSettings server;                //definições do servidor
     PlayerInfo clients[server.n_players]; //array de clientes
 
@@ -97,8 +98,12 @@ int main(int argc, char **argv)
         printf("%s\n", games[i]);
     }
 
-    printf("%d\n", n_games);
+    if(games == NULL || n_games == 0){
+        print("Erro, não foi possível importar jogos, verifique dados\n", STDERR_FILENO);
+        exit(EXIT_FAILURE);
+    }
 
+    printf("%d\n", n_games);
 
     //Rotina de obtenção da variável de ambiente MAXPLAYER
     server.n_players = get_maxplayer();
@@ -133,7 +138,8 @@ int main(int argc, char **argv)
 
     while (1)
     {
-        printf(">");
+        print(">", STDOUT_FILENO);
+        
         fgets(dummy, sizeof dummy, stdin);
     }
 

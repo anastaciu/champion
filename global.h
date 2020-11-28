@@ -13,6 +13,7 @@ typedef enum LogState LogState;
 typedef struct{
     char name[MAX_LEN_NAME]; 
     pid_t player_pid;
+    char player_fifo[MAX_LEN_NAME];
 }PlayerLog;
 
 //dados a enviar do servidor ao cliente

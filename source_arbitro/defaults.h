@@ -37,15 +37,18 @@ typedef struct
     char *game_dir;
     int n_players;
     int player_count;
+    int srv_fifo_fd;
 } ServerSettings;
 
 //dados do cliente mantidos no servidor
 typedef struct{
     pid_t payer_pid;
     char name[MAX_LEN_NAME];
+    char player_fifo[MAX_LEN_NAME];
     pid_t game_pid;
     char game_name[MAX_LEN_NAME];
     PlayerMsg p_msg;
+    int clt_fifo_fd;
 } PlayerInfo;
 
 //estrutura da thread de verificação de dados e setup de login no servidor
@@ -56,4 +59,5 @@ typedef struct
     void *retval;
     PlayerInfo *logged_users;
     ServerSettings *server_settings;
+    
 } LoginThr;

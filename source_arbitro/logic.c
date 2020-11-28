@@ -124,22 +124,12 @@ void *login_thread(void *arg)
 
     LogState log_response;
     size_t log_res;
-    int srv_fifo_fd;
-    int clt_fifo_fd;
-
     PlayerLog player;
-    char client_pipe[MAX_LEN_NAME];
-
-    if ((srv_fifo_fd = open(SERVER_LOG_FIFO, O_RDWR)) == -1)
-    {
-        fprintf(stderr, "Erro ao abrir FIFO\n");
-        remove(SERVER_LOG_FIFO);
-        return NULL;
-    }
 
     while (l_thrd->keep_alive == 1)
     {
-        log_res = read(srv_fifo_fd, &player, sizeof player);
+        log_res = read(l_thrd->server_settings->srv_fifo_fd, &player, sizeof player);
+
         if (log_res < sizeof player)
         {
             fprintf(stderr, "Dados do cliente corrompidos\n");
@@ -166,24 +156,24 @@ void *login_thread(void *arg)
 
             if (log_response != LOGGED && log_response != MAX_USERS)
             {
+                
                 l_thrd->logged_users[l_thrd->server_settings->player_count].payer_pid = player.player_pid;
                 strcpy(l_thrd->logged_users[l_thrd->server_settings->player_count].name, player.name);
+                strcpy(l_thrd->logged_users[l_thrd->server_settings->player_count].player_fifo, player.player_fifo);
                 l_thrd->server_settings->player_count++;
             }
 
-            sprintf(client_pipe, CLIENT_LOG_FIFO, player.player_pid);
+            l_thrd->logged_users[l_thrd->server_settings->player_count - 1].clt_fifo_fd = open(player.player_fifo, O_WRONLY);
 
-            clt_fifo_fd = open(client_pipe, O_WRONLY);
-
-            if (clt_fifo_fd != -1)
+            if (l_thrd->logged_users[l_thrd->server_settings->player_count - 1].clt_fifo_fd != -1)
             {
-                log_res = write(clt_fifo_fd, &log_response, sizeof log_response);
+                log_res = write(l_thrd->logged_users[l_thrd->server_settings->player_count - 1].clt_fifo_fd, &log_response, sizeof log_response);
                 if (log_res != sizeof log_response)
                 {
                     fprintf(stderr, "Erro na resposta ao cliente\n");
                     return NULL;
                 }
-                close(clt_fifo_fd);
+                //close(clt_fifo_fd);
             }
             else
             {
@@ -192,16 +182,15 @@ void *login_thread(void *arg)
             }
         }
     }
-    close(srv_fifo_fd);
+    //close(srv_fifo_fd);
     return NULL;
 }
 
 char **list_games(const char *path, int *n_games)
 {
-    char **games;
+    char **games = malloc(1);
     int name_size;
     int i = 0;
-
     struct dirent *d;
     DIR *dir = opendir(path);
 
@@ -217,7 +206,7 @@ char **list_games(const char *path, int *n_games)
             {
                 return NULL;
             }
-            
+
             name_size = strlen(d->d_name) + 1;
             char game_name[name_size + 2];
             sprintf(game_name, "%s%s", "./", d->d_name);
@@ -226,7 +215,6 @@ char **list_games(const char *path, int *n_games)
             i++;
         }
     }
-
     *n_games = i;
     closedir(dir);
     return games;

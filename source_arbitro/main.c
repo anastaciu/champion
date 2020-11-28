@@ -19,24 +19,23 @@
 int main(int argc, char **argv)
 {
 
-    remove(SERVER_LOG_FIFO); /*TIRAR*/
+    remove(SERVER_LOG_FIFO); /*DEBUG TIRAR*/
 
+    //Cria FIFO do servidor
     if (mkfifo(SERVER_LOG_FIFO, 0777) == -1)
     {
         print(PIPE_ERROR, STDERR_FILENO);
         return EXIT_FAILURE;
     }
+    //fim
 
     char output[OUTPUT_SIZE];             //char array para outputs vários
     char input[INPUT_SIZE];               //char array para inputs
     ServerSettings server;                //definições do servidor
     PlayerInfo clients[server.n_players]; //array de clientes
-
-    GameDirParsing gde; //variavel de controlo para rotina de obtenção de variável de ambiente GAMEDIR
-
-    LoginThr login; // estrutura para thread de login de clientes
-
-    server.player_count = 0; //reset do número de jogadores ligados ao servidor
+    GameDirParsing gde;                   //variavel de controlo para rotina de obtenção de variável de ambiente GAMEDIR
+    LoginThr login;                       // estrutura para thread de login de clientes
+    server.player_count = 0;              //reset do número de jogadores ligados ao servidor
 
     //rotina de obtenção de argumentos da linha de comandos
     switch (command_line_arguments(&server.wait_time, &server.game_duration, argc, argv))
@@ -77,6 +76,7 @@ int main(int argc, char **argv)
     print(output, STDOUT_FILENO);
     sprintf(output, GAME_DURATION_OUT, server.game_duration);
     print(output, STDOUT_FILENO);
+    //fim
 
     //Rotina de obtenção da variável de ambiente GAMEDIR
     if ((gde = get_game_dir(&server.game_dir)) == ENV_ERROR)
@@ -89,6 +89,7 @@ int main(int argc, char **argv)
         sprintf(output, PARSED_GAMEDIR_OUT, server.game_dir);
         print(output, STDOUT_FILENO);
     }
+    //fim
 
     //Procurar jogos na diretoria definida
     int n_games;
@@ -102,8 +103,8 @@ int main(int argc, char **argv)
         print("Erro, não foi possível importar jogos, verifique dados\n", STDERR_FILENO);
         exit(EXIT_FAILURE);
     }
-
     printf("%d\n", n_games);
+    //fim
 
     //Rotina de obtenção da variável de ambiente MAXPLAYER
     server.n_players = get_maxplayer();
@@ -119,43 +120,68 @@ int main(int argc, char **argv)
         sprintf(output, PARSED_MAXPLAYER_OUT, server.n_players);
         print(output, STDOUT_FILENO);
     }
+    //fim
 
     //Setup de dados para a thread de login
     login.keep_alive = 1;
     login.logged_users = clients;
     login.server_settings = &server;
+    //fim
+
+    //abre fifo do servidor para leitura e escrita
+    if ((server.srv_fifo_fd = open(SERVER_LOG_FIFO, O_RDWR)) == -1)
+    {
+        fprintf(stderr, "Erro ao abrir FIFO\n");
+        remove(SERVER_LOG_FIFO);
+        return EXIT_FAILURE;
+    }
+    //fim
 
     //Criação da thread de login
     if (pthread_create(&login.tid, NULL, login_thread, (void *)&login))
     {
-        perror("\nErro na criação da thread ");
+        perror("\nErro na criação da thread");
         remove(SERVER_LOG_FIFO);
         exit(EXIT_FAILURE);
     }
+    //fim
 
-    char dummy[10];
-
-
+    //Rotina de leitura de comandos do teclado
     while (1)
     {
-        print(">", STDOUT_FILENO);
-        
-        fgets(dummy, sizeof dummy, stdin);
+        print(">", STDOUT_FILENO); 
+        fflush(stdout);   
+        fgets(input, sizeof input, stdin);
+        printf("%s", input);
+
     }
+    //fim
 
+    //sincronização da thread the login
     login.keep_alive = 0;
-    pthread_join(login.tid, &login.retval);
+    pthread_join(login.tid, &login.retval); 
+    //fim
 
+    //elimina memória reservada para game_dir caso ela tenha sido necessária
     if (gde == ENV_ERROR)
     {
         free(server.game_dir);
     }
+    //fim
 
+    //Fecha fifos abertos e elimina FIFO do servidor  
+    close(server.srv_fifo_fd);
+    for(int i = 0; i < server.player_count; i++){
+        close(clients[i].clt_fifo_fd);
+    }
     unlink(SERVER_LOG_FIFO);
     remove(SERVER_LOG_FIFO);
+    //fim
 
+    //elimina lista de jogos
     for(int i = 0; i < n_games; i++){
         free(games[i]);
     }
     free(games);
+    //fim
 }

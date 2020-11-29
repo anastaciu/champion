@@ -202,7 +202,7 @@ char **list_games(const char *path, int *n_games)
     {
         if (d->d_name[0] == 'g' && d->d_name[1] == '_')
         {
-            if (!(games = realloc(games, (i + 1))))
+            if (!(games = realloc(games, sizeof *games * (i + 1))))
             {
                 return NULL;
             }

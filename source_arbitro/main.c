@@ -15,7 +15,6 @@
 #include "user_interface.h"
 #include "ui_constants.h"
 
-
 int main(int argc, char **argv)
 {
 
@@ -29,13 +28,12 @@ int main(int argc, char **argv)
     }
     //fim
 
-    char output[OUTPUT_SIZE];             //char array para outputs vários
-    char input[INPUT_SIZE];               //char array para inputs
-    ServerSettings server;                //definições do servidor
-    PlayerInfo clients[server.n_players]; //array de clientes
-    GameDirParsing gde;                   //variavel de controlo para rotina de obtenção de variável de ambiente GAMEDIR
-    LoginThr login;                       // estrutura para thread de login de clientes
-    server.player_count = 0;              //reset do número de jogadores ligados ao servidor
+    char output[OUTPUT_SIZE]; //char array para outputs vários
+    char input[INPUT_SIZE];   //char array para inputs
+    ServerSettings server;    //definições do servidor
+    GameDirParsing gde;       //variavel de controlo para rotina de obtenção de variável de ambiente GAMEDIR
+    LoginThr login;           // estrutura para thread de login de clientes
+    server.player_count = 0;  //reset do número de jogadores ligados ao servidor
 
     //rotina de obtenção de argumentos da linha de comandos
     switch (command_line_arguments(&server.wait_time, &server.game_duration, argc, argv))
@@ -92,18 +90,18 @@ int main(int argc, char **argv)
     //fim
 
     //Procurar jogos na diretoria definida
-    int n_games;
-    char **games = list_games(server.game_dir, &n_games);
-    
-    for(int i = 0; i < n_games; i++){
-        printf("%s\n", games[i]);
+    server.game_list = list_games(server.game_dir, &server.n_games);
+
+    for (int i = 0; i < server.n_games; i++)
+    {
+        printf("%s\n", server.game_list[i]);
     }
 
-    if(games == NULL || n_games == 0){
+    if (server.game_list == NULL || server.n_games == 0)
+    {
         print("Erro, não foi possível importar jogos, verifique dados\n", STDERR_FILENO);
         exit(EXIT_FAILURE);
     }
-    printf("%d\n", n_games);
     //fim
 
     //Rotina de obtenção da variável de ambiente MAXPLAYER
@@ -121,6 +119,8 @@ int main(int argc, char **argv)
         print(output, STDOUT_FILENO);
     }
     //fim
+
+    PlayerInfo clients[server.n_players]; //array de clientes
 
     //Setup de dados para a thread de login
     login.keep_alive = 1;
@@ -149,17 +149,48 @@ int main(int argc, char **argv)
     //Rotina de leitura de comandos do teclado
     while (1)
     {
-        print(">", STDOUT_FILENO); 
-        fflush(stdout);   
-        fgets(input, sizeof input, stdin);
-        printf("%s", input);
+        print(">", STDOUT_FILENO);
+        fflush(stdout);
+        get_user_input(input, STDIN_FILENO, sizeof input);
+        if (strcmp(input, "PLAYERS") == 0)
+        {
+            if (server.n_players > 0)
+            {
+                print("Lista de jogadores:\n", STDOUT_FILENO);
+                for (int i = 0; i < server.player_count; i++)
+                {
+                    print(clients[i].name, STDOUT_FILENO);
+                    print("\n", STDOUT_FILENO);
+                }
+            }
+            else
+            {
+                print("Não há jogadores\n", STDOUT_FILENO);
+            }
+        }
+        else if (strcmp(input, "GAMES") == 0)
+        {
 
+            if (server.n_games > 0)
+            {
+                print("Lista de jogos:\n", STDOUT_FILENO);
+                for (int i = 0; i < server.n_games; i++)
+                {
+                    print(server.game_list[i], STDOUT_FILENO);
+                    print("\n", STDOUT_FILENO);
+                }
+            }
+            else
+            {
+                print("Não foram carregados jogos", STDOUT_FILENO); //não deve acontecer, sem jogos o servidor não é lançado
+            }
+        }
     }
     //fim
 
     //sincronização da thread the login
     login.keep_alive = 0;
-    pthread_join(login.tid, &login.retval); 
+    pthread_join(login.tid, &login.retval);
     //fim
 
     //elimina memória reservada para game_dir caso ela tenha sido necessária
@@ -169,9 +200,10 @@ int main(int argc, char **argv)
     }
     //fim
 
-    //Fecha fifos abertos e elimina FIFO do servidor  
+    //Fecha fifos abertos e elimina FIFO do servidor
     close(server.srv_fifo_fd);
-    for(int i = 0; i < server.player_count; i++){
+    for (int i = 0; i < server.player_count; i++)
+    {
         close(clients[i].clt_fifo_fd);
     }
     unlink(SERVER_LOG_FIFO);
@@ -179,9 +211,10 @@ int main(int argc, char **argv)
     //fim
 
     //elimina lista de jogos
-    for(int i = 0; i < n_games; i++){
-        free(games[i]);
+    for (int i = 0; i < server.n_games; i++)
+    {
+        free(server.game_list[i]);
     }
-    free(games);
+    free(server.game_list);
     //fim
 }

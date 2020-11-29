@@ -1,5 +1,5 @@
 #make todos os executáveis
-all: arbitro cliente g_01
+all: arbitro cliente g_01 jogo g_02
 	
 # make do arbitro
 arbitro: arbitro_main.o arbitro_logic.o global.o
@@ -44,7 +44,7 @@ global.o: global.c
 
 #apaga ficheiros objeto e executáveis
 clean:
-	rm g_forca arbitro cliente *.o
+	rm jogo g_02 g_01 arbitro cliente *.o
 
 #apaga executáveis
 rmexecs:

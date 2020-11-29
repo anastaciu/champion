@@ -38,6 +38,8 @@ typedef struct
     int n_players;
     int player_count;
     int srv_fifo_fd;
+    int n_games;
+    char** game_list;
 } ServerSettings;
 
 //dados do cliente mantidos no servidor

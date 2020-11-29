@@ -14,13 +14,15 @@
 #include "user_interface.h"
 #include "ui_constants.h"
 
-GameData game = {0, 0, 0, 0};
+GameData game = {0, 0, 0, 0}; //dados do jogo
 
 //handler para signal
-void sig_handler(/*int sig*/){
-	//if(sig == SIGUSR1){ // pode ser suprimido, apenas SIGUSR1 é tratado
-	exit(game.points);
-    //}
+void sig_handler(int sig)
+{
+	if (sig == SIGUSR1)
+	{
+		exit(game.points);
+	}
 }
 
 int main()
@@ -35,10 +37,11 @@ int main()
 	//index da palavra escolhia aleatoriamente
 	srand((unsigned)time(NULL));
 
+	//recebe sinal SIGUSR1
 	signal(SIGUSR1, sig_handler);
 
-    print(HEADER, STDOUT_FILENO);
-     
+	print(HEADER, STDOUT_FILENO);
+
 	int i = 0;
 	while (i++ < 3) //jogo repete 3 vezes
 	{

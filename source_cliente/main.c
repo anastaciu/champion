@@ -9,6 +9,7 @@
 #include "../global.h"
 #include "user_interface.h"
 #include "ui_constants.h"
+#include "defaults.h"
 
 int main()
 {

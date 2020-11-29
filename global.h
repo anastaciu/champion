@@ -4,7 +4,6 @@
 #define INPUT_SIZE 100       // tmanho de input para comandos 
 
 #define SERVER_LOG_FIFO "/tmp/login_fifo"     // nome do FIFO do servidor para login
-#define CLIENT_LOG_FIFO "/tmp/login_%d_fifo"  // nome do FIFO de login do cliente
 
 enum LogState{LOGGED, MAX_USERS, SUCCESS}; // estados de login
 typedef enum LogState LogState;

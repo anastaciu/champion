@@ -4,10 +4,12 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <pthread.h>
+#include <string.h>
 
 #include "../global_interface.h"
-#include "../global.h"
 #include "user_interface.h"
+#include "logic_interface.h"
 #include "ui_constants.h"
 #include "defaults.h"
 
@@ -15,12 +17,15 @@ int main()
 {
     PlayerLog player;
     LogState log_response;
-    int srv_fifo_fd;
-    int clt_fifo_fd;
-    size_t log_res;
-    char output[OUTPUT_SIZE];
-    char input[INPUT_SIZE];               //char array para inputs
+    PlayerMsg p_msg;
+    MsgThrd msg_trd;
+    int srv_fifo_fd;           //descritor do fifo do servidor
+    int clt_fifo_fd;           //descritor do fifo do cliente
+    size_t log_res;            //tamanho da resposta
+    char output[OUTPUT_SIZE];  //char array para outputs
+    char input[INPUT_SIZE];    //char array para inputs
 
+    //Obtém pid do processo, cria nome para o fifo com base no pid, cria fifo
     player.player_pid = getpid();
     sprintf(player.player_fifo, CLIENT_LOG_FIFO, player.player_pid);
 
@@ -29,7 +34,8 @@ int main()
         perror(PIPE_ERROR);
         return EXIT_FAILURE;
     }
-
+    //fim
+    //abe fifo do servidor para escrita
     srv_fifo_fd = open(SERVER_LOG_FIFO, O_WRONLY);
 
     if (srv_fifo_fd == -1)
@@ -38,7 +44,9 @@ int main()
         unlink(player.player_fifo);
         return EXIT_FAILURE;
     }
+    //fim
 
+    //abre fifo do cliente para leitura e escrita, não bloqueia
     clt_fifo_fd = open(player.player_fifo, O_RDWR);
 
     if (clt_fifo_fd == -1)
@@ -49,6 +57,7 @@ int main()
         return (EXIT_FAILURE);
     }
 
+    //Rotina de login no servidor com verificação da resposta e do estado de login
     print(NAME_PROMPT_OUT, STDOUT_FILENO);
     get_user_input(player.name, STDIN_FILENO, MAX_LEN_NAME);
     sprintf(output, USER_NAME_OUT USER_PID_OUT, player.name, player.player_pid);
@@ -58,7 +67,6 @@ int main()
 
     log_res = read(clt_fifo_fd, &log_response, sizeof log_response);
 
-    fflush(stdout);
     if (log_res == sizeof log_response)
     {
         switch (log_response)
@@ -84,15 +92,35 @@ int main()
         print("Dados corrompidos", STDERR_FILENO);
         exit(EXIT_FAILURE);
     }
+    //fim
+
+    //Setup de estruturad e dados da thread de comunicação com o servidor
+    msg_trd.clt_fifo_fd = clt_fifo_fd;
+    msg_trd.srv_fifo_fd = srv_fifo_fd;
+    msg_trd.keep_alive = 1;
+    msg_trd.msg = &p_msg;
+    strcpy(msg_trd.clt_fifo_name, player.player_fifo);
+
+    //Criação da thread de login
+    if (pthread_create(&msg_trd.tid, NULL, com_thread, (void *)&msg_trd))
+    {
+        perror("\nErro na criação da thread");
+        exit(EXIT_FAILURE);
+    }
+    //fim
+
+    //cilco de leitura de comandos
     while (1)
     {
         print(">", STDOUT_FILENO);
-        fgets(input, sizeof input, stdin);
+        get_user_input(input, STDIN_FILENO, sizeof input);
         printf("%s", input);
     }
-
+    //fim
+    
+    //fecha fffos de cliente e servidor, remove fifo do cliente
     close(clt_fifo_fd);
     close(srv_fifo_fd);
-    unlink(player.player_fifo);
     remove(player.player_fifo);
+    //fim
 }

@@ -1,6 +1,6 @@
 
 //imprime str no ficheiro com o descritor fd_out
-void print(const char* str, int fd_out);
+int print(const char* str, int fd_out);
 
 //verifica se ainda existem characteres no ficheiro com o descritor fd
 //caso se verifique, limpa-o

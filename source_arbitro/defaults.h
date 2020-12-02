@@ -49,8 +49,8 @@ typedef struct{
     char player_fifo[MAX_LEN_NAME];
     pid_t game_pid;
     char game_name[MAX_LEN_NAME];
-    PlayerMsg p_msg;
     int clt_fifo_fd;
+    int points;
 } PlayerInfo;
 
 //estrutura da thread de verificação de dados e setup de login no servidor

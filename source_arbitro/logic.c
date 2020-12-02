@@ -125,6 +125,7 @@ void *login_thread(void *arg)
     LogState log_response;
     size_t log_res;
     PlayerLog player;
+    int clt_fifo_fd;
 
     while (l_thrd->keep_alive == 1)
     {
@@ -163,11 +164,15 @@ void *login_thread(void *arg)
                 l_thrd->server_settings->player_count++;
             }
 
-            l_thrd->logged_users[l_thrd->server_settings->player_count - 1].clt_fifo_fd = open(player.player_fifo, O_WRONLY);
+            clt_fifo_fd = open(player.player_fifo, O_WRONLY);
 
-            if (l_thrd->logged_users[l_thrd->server_settings->player_count - 1].clt_fifo_fd != -1)
+            if(log_response != LOGGED && log_response != MAX_USERS){
+                l_thrd->logged_users[l_thrd->server_settings->player_count - 1].clt_fifo_fd = clt_fifo_fd;
+            }
+
+            if (clt_fifo_fd != -1)
             {
-                log_res = write(l_thrd->logged_users[l_thrd->server_settings->player_count - 1].clt_fifo_fd, &log_response, sizeof log_response);
+                log_res = write(clt_fifo_fd, &log_response, sizeof log_response);
                 if (log_res != sizeof log_response)
                 {
                     fprintf(stderr, "Erro na resposta ao cliente\n");
@@ -200,13 +205,12 @@ char **list_games(const char *path, int *n_games)
     }
     while ((d = readdir(dir)) != NULL)
     {
-        if (d->d_name[0] == 'g' && d->d_name[1] == '_')
+        if ((d->d_name[0] == 'g' && d->d_name[1] == '_') || (d->d_name[0] == 'j' && d->d_name[1] == 'o')) //"jo" para jogo de acordo com as metas, tirar na versão final
         {
             if (!(games = realloc(games, sizeof *games * (i + 1))))
             {
                 return NULL;
             }
-
             name_size = strlen(d->d_name) + 1;
             char game_name[name_size + 2];
             sprintf(game_name, "%s%s", "./", d->d_name);

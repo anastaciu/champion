@@ -4,10 +4,11 @@
 #include <poll.h>
 #include <ctype.h>
 
-void print(const char *str, int fd_out)
+int print(const char *str, int fd_out)
 {
     write(fd_out, str, strlen(str));
     fflush(stdout);
+    return strlen(str);
 }
 
 void _to_upper(char *str){

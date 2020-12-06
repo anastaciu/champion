@@ -33,6 +33,9 @@ int main(int argc, char **argv)
     ServerSettings server;    //definições do servidor
     GameDirParsing gde;       //variavel de controlo para rotina de obtenção de variável de ambiente GAMEDIR
     LoginThr login;           //estrutura para thread de login de clientes
+    PlayerLog plr;
+
+    memset(&plr, 0, sizeof plr);
 
     server.player_count = 0; //reset do número de jogadores ligados ao servidor
 
@@ -95,7 +98,7 @@ int main(int argc, char **argv)
 
     if (server.game_list == NULL || server.n_games == 0)
     {
-        print("Erro, não foi possível importar jogos, verifique dados\n", STDERR_FILENO);
+        print("Erro, não foi possível importar jogos, diretoria definida não existe ou não tem jogos\n", STDERR_FILENO);
         remove(SERVER_LOG_FIFO);
         exit(EXIT_FAILURE);
     }
@@ -135,7 +138,7 @@ int main(int argc, char **argv)
     //fim
 
     //Criação da thread de login
-    if (pthread_create(&login.tid, NULL, login_thread, (void *)&login))
+     if (pthread_create(&login.tid, NULL, login_thread, (void *)&login))
     {
         perror("\nErro na criação da thread");
         remove(SERVER_LOG_FIFO);
@@ -144,17 +147,14 @@ int main(int argc, char **argv)
             free(server.game_dir);
         }
         exit(EXIT_FAILURE);
-    }
+    } 
     //fim
-
-    //debug
-    printf("O meu pid é %d", getpid());
-    fflush(stdout);
 
     //Rotina de leitura execução de comandos do teclado
     do
     {
         print(">", STDOUT_FILENO);
+    
         fflush(stdout);
         get_user_input(input, STDIN_FILENO, sizeof input);
         if (strcmp(input, "PLAYERS") == 0)
@@ -166,6 +166,12 @@ int main(int argc, char **argv)
                 {
                     print(clients[i].name, STDOUT_FILENO);
                     print("\n", STDOUT_FILENO);
+                    print(clients[i].player_fifo, STDOUT_FILENO);
+                    print("\n", STDOUT_FILENO);
+                    print(clients[i].game_name, STDOUT_FILENO);
+                    print("\n", STDOUT_FILENO);
+
+
                 }
             }
             else
@@ -209,17 +215,15 @@ int main(int argc, char **argv)
             }
             else
             {
-                PlayerMsg plm;
-                plm.log_state = REMOVED;
-                plm.points = clients[i].points;
-                plm.msg[0] = '\0';
+                plr.p_msg.log_state = REMOVED;
+                //plr.p_msg.points = clients[i].points;             
 
                 print("Jogador ", STDOUT_FILENO);
                 print(clients[i].name, STDOUT_FILENO);
                 print(" removido\n", STDOUT_FILENO);
 
-                int w = write(clients[i].clt_fifo_fd, &plm, sizeof plm); //falta verificação de erros
-                if(w != sizeof plm){
+                int w = write(clients[i].clt_fifo_fd, &plr, sizeof plr); //falta verificação de erros
+                if(w != sizeof plr){
                     print("Erro de comunicação com o cliente!\n", STDERR_FILENO);
                 }
 
@@ -241,11 +245,6 @@ int main(int argc, char **argv)
 
     //fim
 
-    //sincronização da thread the login
-    //login.keep_alive = 0;
-    //pthread_join(login.tid, &login.retval);
-    //fim
-
     //elimina memória reservada para game_dir caso ela tenha sido necessária
     if (gde == ENV_ERROR)
     {
@@ -258,9 +257,8 @@ int main(int argc, char **argv)
 
     for (int i = 0; i < server.player_count; i++)
     {
-        PlayerMsg msg;
-        msg.log_state = EXITED;
-        write(clients[i].clt_fifo_fd, &msg, sizeof msg);
+        plr.p_msg.log_state = EXITED;
+        write(clients[i].clt_fifo_fd, &plr, sizeof plr);
         close(clients[i].clt_fifo_fd);
     }
 
@@ -273,5 +271,10 @@ int main(int argc, char **argv)
         free(server.game_list[i]);
     }
     free(server.game_list);
+    //fim
+
+    //sincronização da thread the comunicação com o cliente
+    login.keep_alive = 0;
+    //pthread_join(login.tid, &login.retval);
     //fim
 }

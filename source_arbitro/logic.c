@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <dirent.h>
+#include <pthread.h>
 
 #include "defaults.h"
 
@@ -36,13 +37,13 @@ CmdArgs _parse_arguments(char *opt, char *argv1, char *argv2, CmdArgs flag, long
 
 CmdArgs command_line_arguments(long *wait_time, long *game_duration, int argc, char **argv)
 {
-    CmdArgs erro1, error2, error3, error4;
+    CmdArgs error1, error2, error3, error4;
     *wait_time = DEFAULT_WAIT_TIME;
     *game_duration = DEFAULT_GAME_TIME;
 
     if (argc > 2)
     {
-        erro1 = _parse_arguments("-g", argv[1], argv[2], ERROR_GAME_TIME, game_duration, DEFAULT_GAME_TIME, MIN_GAME_TIME);
+        error1 = _parse_arguments("-g", argv[1], argv[2], ERROR_GAME_TIME, game_duration, DEFAULT_GAME_TIME, MIN_GAME_TIME);
         error2 = _parse_arguments("-w", argv[1], argv[2], ERROR_WAIT_TIME, wait_time, DEFAULT_WAIT_TIME, MIN_WAIT_TIME);
 
         if (argc > 4)
@@ -50,15 +51,15 @@ CmdArgs command_line_arguments(long *wait_time, long *game_duration, int argc, c
             error3 = _parse_arguments("-g", argv[3], argv[4], ERROR_GAME_TIME, game_duration, DEFAULT_GAME_TIME, MIN_GAME_TIME);
             error4 = _parse_arguments("-w", argv[3], argv[4], ERROR_WAIT_TIME, wait_time, DEFAULT_WAIT_TIME, MIN_WAIT_TIME);
 
-            if ((erro1 == OK && error4 == OK) || (error2 == OK && error3 == OK))
+            if ((error1 == OK && error4 == OK) || (error2 == OK && error3 == OK))
             {
                 return OK;
             }
-            else if ((erro1 == ERROR_GAME_TIME && error4 == ERROR_WAIT_TIME) && (error2 == ERROR_WAIT_TIME && error3 == ERROR_GAME_TIME))
+            else if ((error1 == ERROR_GAME_TIME && error4 == ERROR_WAIT_TIME) && (error2 == ERROR_WAIT_TIME && error3 == ERROR_GAME_TIME))
             {
                 return ERROR_BOTH;
             }
-            else if ((erro1 == ERROR_GAME_TIME && error3 == ERROR_GAME_TIME))
+            else if ((error1 == ERROR_GAME_TIME && error3 == ERROR_GAME_TIME))
             {
                 return ERROR_GAME_TIME;
             }
@@ -67,7 +68,7 @@ CmdArgs command_line_arguments(long *wait_time, long *game_duration, int argc, c
                 return ERROR_WAIT_TIME;
             }
         }
-        else if (erro1 == OK)
+        else if (error1 == OK)
         {
             return ERROR_WAIT_TIME;
         }
@@ -121,11 +122,14 @@ GameDirParsing get_game_dir(char **game_dir)
 void *login_thread(void *arg)
 {
     LoginThr *l_thrd = (LoginThr *)arg;
-
-    LogState log_response;
+    srand(time(0));
     size_t log_res;
     PlayerLog player;
+
     int clt_fifo_fd;
+    int game_index;
+
+    memset(&player, 0, sizeof player);
 
     while (l_thrd->keep_alive == 1)
     {
@@ -136,12 +140,36 @@ void *login_thread(void *arg)
             fprintf(stderr, "Dados do cliente corrompidos\n");
             return NULL;
         }
+        else if (strcmp(player.p_msg.msg, "#QUIT") == 0)
+        {
+            printf("\nJogador desistiu\n>"); //implementar
+            fflush(stdout);
+            int i;
+            bool flag = false;
+            for (i = 0; i < l_thrd->server_settings->player_count; i++)
+            {
+                if (strcmp(l_thrd->logged_users[i].name, player.name) == 0)
+                {
+                    l_thrd->server_settings->player_count--;
+                    flag = true;
+                    break;
+                }
+            }
+            if (flag)
+            {
+                while (i < l_thrd->server_settings->player_count)
+                {
+                    l_thrd->logged_users[i] = l_thrd->logged_users[i + 1];
+                }
+            }
+        }
+
         else
         {
-            log_response = SUCCESS;
+            player.p_msg.log_state = SUCCESS;
             if (l_thrd->server_settings->n_players == l_thrd->server_settings->player_count)
             {
-                log_response = MAX_USERS;
+                player.p_msg.log_state = MAX_USERS;
             }
             if (l_thrd->server_settings->player_count > 0)
             {
@@ -149,31 +177,34 @@ void *login_thread(void *arg)
                 {
                     if (strcmp(player.name, l_thrd->logged_users[i].name) == 0)
                     {
-                        log_response = LOGGED;
+                        player.p_msg.log_state = LOGGED;
                         break;
                     }
                 }
             }
 
-            if (log_response != LOGGED && log_response != MAX_USERS)
+            if (player.p_msg.log_state != LOGGED && player.p_msg.log_state != MAX_USERS)
             {
-                
                 l_thrd->logged_users[l_thrd->server_settings->player_count].payer_pid = player.player_pid;
                 strcpy(l_thrd->logged_users[l_thrd->server_settings->player_count].name, player.name);
                 strcpy(l_thrd->logged_users[l_thrd->server_settings->player_count].player_fifo, player.player_fifo);
+                game_index = rand() % l_thrd->server_settings->n_games;
+                strncpy(l_thrd->logged_users[l_thrd->server_settings->player_count].game_name, l_thrd->server_settings->game_list[game_index], sizeof l_thrd->logged_users[l_thrd->server_settings->player_count].game_name);
                 l_thrd->server_settings->player_count++;
             }
 
             clt_fifo_fd = open(player.player_fifo, O_WRONLY);
 
-            if(log_response != LOGGED && log_response != MAX_USERS){
+            if (player.p_msg.log_state != LOGGED && player.p_msg.log_state != MAX_USERS)
+            {
                 l_thrd->logged_users[l_thrd->server_settings->player_count - 1].clt_fifo_fd = clt_fifo_fd;
             }
 
             if (clt_fifo_fd != -1)
             {
-                log_res = write(clt_fifo_fd, &log_response, sizeof log_response);
-                if (log_res != sizeof log_response)
+                strncpy(player.p_msg.game_name, l_thrd->server_settings->game_list[game_index], sizeof l_thrd->logged_users[l_thrd->server_settings->player_count - 1].game_name);
+                log_res = write(clt_fifo_fd, &player, sizeof player);
+                if (log_res != sizeof player)
                 {
                     fprintf(stderr, "Erro na resposta ao cliente\n");
                     return NULL;
@@ -188,6 +219,7 @@ void *login_thread(void *arg)
         }
     }
     //close(srv_fifo_fd);
+    //pthread_exit(l_thrd->retval);
     return NULL;
 }
 

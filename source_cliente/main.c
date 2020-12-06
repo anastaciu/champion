@@ -16,8 +16,7 @@
 int main()
 {
     PlayerLog player;
-    LogState log_response;
-    PlayerMsg p_msg;
+    //PlayerMsg player.p_msg.msg;
     MsgThrd msg_trd;
     int srv_fifo_fd;           //descritor do fifo do servidor
     int clt_fifo_fd;           //descritor do fifo do cliente
@@ -25,10 +24,13 @@ int main()
     char output[OUTPUT_SIZE];  //char array para outputs
     char input[INPUT_SIZE];    //char array para inputs
 
+    
+    memset(&player, 0, sizeof player);
+    //memset(&player.p_msg.msg, 0, sizeof player.p_msg.msg);
+
     //Obtém pid do processo, cria nome para o fifo com base no pid, cria fifo
     player.player_pid = getpid();
     sprintf(player.player_fifo, CLIENT_LOG_FIFO, player.player_pid);
-
     if (mkfifo(player.player_fifo, 0777) == -1)
     {
         perror(PIPE_ERROR);
@@ -41,35 +43,33 @@ int main()
     if (srv_fifo_fd == -1)
     {
         perror(ERROR_SERVER_FIFO);
-        unlink(player.player_fifo);
+        remove(player.player_fifo);
         return EXIT_FAILURE;
     }
     //fim
 
-    //abre fifo do cliente para leitura e escrita, não bloqueia
+    //abre fifo do cliente para leitura e escrita, não bloqueante
     clt_fifo_fd = open(player.player_fifo, O_RDWR);
 
     if (clt_fifo_fd == -1)
     {
         perror(ERROR_CLIENT_FIFO);
         close(srv_fifo_fd);
-        unlink(player.player_fifo);
+        remove(player.player_fifo);
         return (EXIT_FAILURE);
     }
 
     //Rotina de login no servidor com verificação da resposta e do estado de login
     print(NAME_PROMPT_OUT, STDOUT_FILENO);
     get_user_input(player.name, STDIN_FILENO, MAX_LEN_NAME);
-    sprintf(output, USER_NAME_OUT USER_PID_OUT, player.name, player.player_pid);
-    print(output, STDOUT_FILENO);
-
+ 
     write(srv_fifo_fd, &player, sizeof player);
 
-    log_res = read(clt_fifo_fd, &log_response, sizeof log_response);
+    log_res = read(clt_fifo_fd, &player, sizeof player);
 
-    if (log_res == sizeof log_response)
+    if (log_res == sizeof player)
     {
-        switch (log_response)
+        switch (player.p_msg.log_state)
         {
         case SUCCESS:
             print("Login efectuado com sucesso...\n", STDOUT_FILENO);
@@ -94,11 +94,12 @@ int main()
     }
     //fim
 
-    //Setup de estruturad e dados da thread de comunicação com o servidor
+    //Setup de estrutura de dados da thread de comunicação com o servidor
     msg_trd.clt_fifo_fd = clt_fifo_fd;
     msg_trd.srv_fifo_fd = srv_fifo_fd;
     msg_trd.keep_alive = 1;
-    msg_trd.msg = &p_msg;
+    msg_trd.msg = &player.p_msg;
+    
     strcpy(msg_trd.clt_fifo_name, player.player_fifo);
 
     //Criação da thread de login
@@ -113,14 +114,28 @@ int main()
     while (1)
     {
         print(">", STDOUT_FILENO);
-        get_user_input(input, STDIN_FILENO, sizeof input);
+        get_user_input(input, STDIN_FILENO, sizeof input);  
+        strcpy(player.p_msg.msg, input);
+        write(srv_fifo_fd, &player, sizeof player);
+        read(clt_fifo_fd, &player, sizeof player);
+
+
+        //printf("%d, %s, %d, %s %s\n", msg_trd.msg->log_state, msg_trd.msg->msg, msg_trd.msg->points, msg_trd.msg->game_name, player.p_msg.msg.game_name); //debug   
+
         printf("%s", input);
     }
     //fim
+
+    
     
     //fecha fffos de cliente e servidor, remove fifo do cliente
     close(clt_fifo_fd);
     close(srv_fifo_fd);
     remove(player.player_fifo);
+    //fim
+
+    //sincronização da thread the comunicação com o cliente
+    msg_trd.keep_alive = 0;
+    pthread_join(msg_trd.tid, &msg_trd.retval);
     //fim
 }

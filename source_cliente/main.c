@@ -18,13 +18,12 @@ int main()
     PlayerLog player;
     //PlayerMsg player.p_msg.msg;
     MsgThrd msg_trd;
-    int srv_fifo_fd;           //descritor do fifo do servidor
-    int clt_fifo_fd;           //descritor do fifo do cliente
-    size_t log_res;            //tamanho da resposta
-    char output[OUTPUT_SIZE];  //char array para outputs
-    char input[INPUT_SIZE];    //char array para inputs
+    int srv_fifo_fd; //descritor do fifo do servidor
+    int clt_fifo_fd; //descritor do fifo do cliente
+    size_t log_res;  //tamanho da resposta
+    //char output[OUTPUT_SIZE];  //char array para outputs
+    char input[INPUT_SIZE]; //char array para inputs
 
-    
     memset(&player, 0, sizeof player);
     //memset(&player.p_msg.msg, 0, sizeof player.p_msg.msg);
 
@@ -62,7 +61,7 @@ int main()
     //Rotina de login no servidor com verificação da resposta e do estado de login
     print(NAME_PROMPT_OUT, STDOUT_FILENO);
     get_user_input(player.name, STDIN_FILENO, MAX_LEN_NAME);
- 
+    player.p_msg.log_state = LOGGING;
     write(srv_fifo_fd, &player, sizeof player);
 
     log_res = read(clt_fifo_fd, &player, sizeof player);
@@ -99,7 +98,7 @@ int main()
     msg_trd.srv_fifo_fd = srv_fifo_fd;
     msg_trd.keep_alive = 1;
     msg_trd.msg = &player.p_msg;
-    
+
     strcpy(msg_trd.clt_fifo_name, player.player_fifo);
 
     //Criação da thread de login
@@ -110,24 +109,30 @@ int main()
     }
     //fim
 
-    //cilco de leitura de comandos
+    //ciclo de leitura de comandos
     while (1)
     {
         print(">", STDOUT_FILENO);
-        get_user_input(input, STDIN_FILENO, sizeof input);  
-        strcpy(player.p_msg.msg, input);
-        write(srv_fifo_fd, &player, sizeof player);
-        read(clt_fifo_fd, &player, sizeof player);
+        get_user_input(input, STDIN_FILENO, sizeof input);
+        if (strcmp(input, "#MYGAME") == 0)
+        {
+            printf("\nO seu jogo é %s!\n", player.p_msg.game_name);
+            fflush(stdout);
+        }
+        else
+        {
+            strcpy(player.p_msg.msg, input);
+            write(srv_fifo_fd, &player, sizeof player);            
+        }
 
-
-        //printf("%d, %s, %d, %s %s\n", msg_trd.msg->log_state, msg_trd.msg->msg, msg_trd.msg->points, msg_trd.msg->game_name, player.p_msg.msg.game_name); //debug   
-
-        printf("%s", input);
+        if (player.p_msg.log_state == QUITED)
+        {
+            print("\nSaiu do jogo!", STDOUT_FILENO);
+            break;
+        }
     }
     //fim
 
-    
-    
     //fecha fffos de cliente e servidor, remove fifo do cliente
     close(clt_fifo_fd);
     close(srv_fifo_fd);
@@ -136,6 +141,6 @@ int main()
 
     //sincronização da thread the comunicação com o cliente
     msg_trd.keep_alive = 0;
-    pthread_join(msg_trd.tid, &msg_trd.retval);
+    //pthread_join(msg_trd.tid, &msg_trd.retval);
     //fim
 }

@@ -7,7 +7,7 @@
 
 #define SERVER_LOG_FIFO "/tmp/login_fifo"     // nome do FIFO do servidor para login
 
-enum LogState{LOGGED, MAX_USERS, SUCCESS, REMOVED, SUSPENDED, EXITED}; // estados de login
+enum LogState{LOGGING, LOGGED, MAX_USERS, SUCCESS, REMOVED, SUSPENDED, EXITED, QUITED}; // estados de login
 typedef enum LogState LogState;
 
 //estrutura simples para nome e  pontos de jogador

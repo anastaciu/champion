@@ -12,7 +12,6 @@ void *com_thread(void *arg)
 {
     MsgThrd *msg_trd = (MsgThrd *)arg;
     PlayerLog plr;
-    //PlayerMsg plr_msg;
     while (msg_trd->keep_alive == 1)
     {       
         int r = read(msg_trd->clt_fifo_fd, &plr, sizeof plr);
@@ -23,8 +22,7 @@ void *com_thread(void *arg)
                 close(msg_trd->clt_fifo_fd);
                 close(msg_trd->srv_fifo_fd);
                 remove(msg_trd->clt_fifo_name);
-                print("\nFoi removido pelo árbitro!\n", STDOUT_FILENO);
-                
+                print("\nFoi removido pelo árbitro!\n", STDOUT_FILENO);               
                 exit(EXIT_SUCCESS);
             }
             else if (plr.p_msg.log_state == EXITED)
@@ -32,10 +30,18 @@ void *com_thread(void *arg)
                 close(msg_trd->clt_fifo_fd);
                 close(msg_trd->srv_fifo_fd);
                 remove(msg_trd->clt_fifo_name);
-                print("\nO servidor foi encerrado!\n", STDOUT_FILENO);
-                
+                print("\nO servidor foi encerrado!\n", STDOUT_FILENO);                
                 exit(EXIT_SUCCESS);
             }
+            else if (plr.p_msg.log_state == QUITED)
+            {
+                close(msg_trd->clt_fifo_fd);
+                close(msg_trd->srv_fifo_fd);
+                remove(msg_trd->clt_fifo_name);
+                print("\nSaiu do jogo!\n", STDOUT_FILENO);                
+                exit(EXIT_SUCCESS);
+            }
+
             strcpy(msg_trd->msg->game_name, plr.p_msg.game_name);
             strcpy(msg_trd->msg->msg, plr.p_msg.msg);
             msg_trd->msg->points = plr.p_msg.points;

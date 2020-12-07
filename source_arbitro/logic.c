@@ -121,11 +121,9 @@ GameDirParsing get_game_dir(char **game_dir)
 
 void *login_thread(void *arg)
 {
-    LoginThr *l_thrd = (LoginThr *)arg;
-    srand(time(0));
+    LoginThr *l_thrd = (LoginThr *)arg;   
     size_t log_res;
     PlayerLog player;
-
     int clt_fifo_fd;
     int game_index;
 
@@ -133,6 +131,7 @@ void *login_thread(void *arg)
 
     while (l_thrd->keep_alive == 1)
     {
+        int i;
         log_res = read(l_thrd->server_settings->srv_fifo_fd, &player, sizeof player);
 
         if (log_res < sizeof player)
@@ -140,40 +139,18 @@ void *login_thread(void *arg)
             fprintf(stderr, "Dados do cliente corrompidos\n");
             return NULL;
         }
-        else if (strcmp(player.p_msg.msg, "#QUIT") == 0)
-        {
-            printf("\nJogador desistiu\n>"); //implementar
-            fflush(stdout);
-            int i;
-            bool flag = false;
-            for (i = 0; i < l_thrd->server_settings->player_count; i++)
-            {
-                if (strcmp(l_thrd->logged_users[i].name, player.name) == 0)
-                {
-                    l_thrd->server_settings->player_count--;
-                    flag = true;
-                    break;
-                }
-            }
-            if (flag)
-            {
-                while (i < l_thrd->server_settings->player_count)
-                {
-                    l_thrd->logged_users[i] = l_thrd->logged_users[i + 1];
-                }
-            }
-        }
-
-        else
+        else if( player.p_msg.log_state == LOGGING)
         {
             player.p_msg.log_state = SUCCESS;
+
             if (l_thrd->server_settings->n_players == l_thrd->server_settings->player_count)
             {
                 player.p_msg.log_state = MAX_USERS;
             }
+
             if (l_thrd->server_settings->player_count > 0)
             {
-                for (int i = 0; i < l_thrd->server_settings->player_count; i++)
+                for (i = 0; i < l_thrd->server_settings->player_count; i++)
                 {
                     if (strcmp(player.name, l_thrd->logged_users[i].name) == 0)
                     {
@@ -188,7 +165,8 @@ void *login_thread(void *arg)
                 l_thrd->logged_users[l_thrd->server_settings->player_count].payer_pid = player.player_pid;
                 strcpy(l_thrd->logged_users[l_thrd->server_settings->player_count].name, player.name);
                 strcpy(l_thrd->logged_users[l_thrd->server_settings->player_count].player_fifo, player.player_fifo);
-                game_index = rand() % l_thrd->server_settings->n_games;
+                time_t t = time(NULL);
+                game_index = rand_r((unsigned int*)&t) % l_thrd->server_settings->n_games;
                 strncpy(l_thrd->logged_users[l_thrd->server_settings->player_count].game_name, l_thrd->server_settings->game_list[game_index], sizeof l_thrd->logged_users[l_thrd->server_settings->player_count].game_name);
                 l_thrd->server_settings->player_count++;
             }
@@ -207,19 +185,57 @@ void *login_thread(void *arg)
                 if (log_res != sizeof player)
                 {
                     fprintf(stderr, "Erro na resposta ao cliente\n");
+                    fflush(stdout);
                     return NULL;
                 }
-                //close(clt_fifo_fd);
             }
             else
             {
                 perror("Erro ao abrir FIFO do cliente");
+                fflush(stdout);
                 return NULL;
             }
         }
+
+        else if (strcmp(player.p_msg.msg, "#QUIT") == 0)
+        {                     
+            bool exists = false;
+            for (i = 0; i < l_thrd->server_settings->player_count; i++)
+            {
+                if (strcmp(l_thrd->logged_users[i].name, player.name) == 0)
+                {
+                    l_thrd->server_settings->player_count--;
+                    exists = true;
+                    break;
+                }
+            }
+            if (exists)
+            {   
+                int clt_fifo = l_thrd->logged_users[i].clt_fifo_fd;
+                char* fifo_name = l_thrd->logged_users[i].player_fifo;
+                player.p_msg.log_state = QUITED;
+
+                write(l_thrd->logged_users[i].clt_fifo_fd, &player, sizeof player);
+
+                while (i < l_thrd->server_settings->player_count)
+                {
+                    l_thrd->logged_users[i] = l_thrd->logged_users[i + 1];   
+                    i++;                 
+                }  
+
+                close(clt_fifo);
+                remove(fifo_name);             
+            }
+        }
+        else
+        {
+            player.p_msg.log_state = SUCCESS;
+            fprintf(stdout, "%s", player.p_msg.msg);
+            fflush(stdout);
+            player.p_msg.msg[0] = 0;
+            write(clt_fifo_fd, &player, sizeof player);
+        }       
     }
-    //close(srv_fifo_fd);
-    //pthread_exit(l_thrd->retval);
     return NULL;
 }
 

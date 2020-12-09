@@ -31,9 +31,9 @@ int main()
 	char output[OUTPUT_SIZE]; //outputs vários
 	Dictionary dict = {WORDS, sizeof WORDS / sizeof WORDS[0]};
 	bool init = true;
-	int state;
-	int word_index;
-	int old_index;
+	int state = 0;
+	int word_index = 0;
+	int old_index = 0;
 
 	char word[WORDSIZE];  //palavra a descobrir
 	char input[WORDSIZE]; //input do utilizador

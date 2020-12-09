@@ -24,7 +24,7 @@ void *com_thread(void *arg)
                 remove(msg_trd->p_log->player_fifo);
                 print("\nFoi removido pelo árbitro!\n", STDOUT_FILENO);
                 msg_trd->keep_alive = 0;           
-                //exit(EXIT_SUCCESS);
+                exit(EXIT_SUCCESS);
             }
             else if (plr.p_msg.log_state == EXITED)
             {
@@ -33,7 +33,7 @@ void *com_thread(void *arg)
                 remove(msg_trd->p_log->player_fifo);
                 print("\nO servidor foi encerrado!\n", STDOUT_FILENO);
                 msg_trd->keep_alive = 0;     
-                //exit(EXIT_SUCCESS);
+                exit(EXIT_SUCCESS);
             }
             else if (plr.p_msg.log_state == QUITED)
             {
@@ -42,7 +42,7 @@ void *com_thread(void *arg)
                 remove(msg_trd->p_log->player_fifo);
                 print("\nSaiu do jogo!\n", STDOUT_FILENO); 
                 msg_trd->keep_alive = 0;             
-                //exit(EXIT_SUCCESS);
+                exit(EXIT_SUCCESS);
             }
             else{
                 print("\nMensagem do servidor: ", STDOUT_FILENO);

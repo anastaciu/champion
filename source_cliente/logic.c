@@ -16,36 +16,44 @@ void *com_thread(void *arg)
     {       
         int r = read(msg_trd->clt_fifo_fd, &plr, sizeof plr);
         if (r == sizeof plr)
-        {          
+        {         
             if (plr.p_msg.log_state == REMOVED)
             {
                 close(msg_trd->clt_fifo_fd);
                 close(msg_trd->srv_fifo_fd);
-                remove(msg_trd->clt_fifo_name);
-                print("\nFoi removido pelo árbitro!\n", STDOUT_FILENO);               
-                exit(EXIT_SUCCESS);
+                remove(msg_trd->p_log->player_fifo);
+                print("\nFoi removido pelo árbitro!\n", STDOUT_FILENO);
+                msg_trd->keep_alive = 0;           
+                //exit(EXIT_SUCCESS);
             }
             else if (plr.p_msg.log_state == EXITED)
             {
                 close(msg_trd->clt_fifo_fd);
                 close(msg_trd->srv_fifo_fd);
-                remove(msg_trd->clt_fifo_name);
-                print("\nO servidor foi encerrado!\n", STDOUT_FILENO);                
-                exit(EXIT_SUCCESS);
+                remove(msg_trd->p_log->player_fifo);
+                print("\nO servidor foi encerrado!\n", STDOUT_FILENO);
+                msg_trd->keep_alive = 0;     
+                //exit(EXIT_SUCCESS);
             }
             else if (plr.p_msg.log_state == QUITED)
             {
                 close(msg_trd->clt_fifo_fd);
                 close(msg_trd->srv_fifo_fd);
-                remove(msg_trd->clt_fifo_name);
-                print("\nSaiu do jogo!\n", STDOUT_FILENO);                
-                exit(EXIT_SUCCESS);
+                remove(msg_trd->p_log->player_fifo);
+                print("\nSaiu do jogo!\n", STDOUT_FILENO); 
+                msg_trd->keep_alive = 0;             
+                //exit(EXIT_SUCCESS);
+            }
+            else{
+                print("\nMensagem do servidor: ", STDOUT_FILENO);
+                print(plr.p_msg.msg, STDOUT_FILENO);
+                print("\n>", STDOUT_FILENO);
             }
 
-            strcpy(msg_trd->msg->game_name, plr.p_msg.game_name);
-            strcpy(msg_trd->msg->msg, plr.p_msg.msg);
-            msg_trd->msg->points = plr.p_msg.points;
-            msg_trd->msg->log_state = plr.p_msg.log_state;
+            strcpy(msg_trd->p_log->p_msg.game_name, plr.p_msg.game_name);
+            strcpy(msg_trd->p_log->p_msg.msg, plr.p_msg.msg);
+            msg_trd->p_log->p_msg.points = plr.p_msg.points;
+            msg_trd->p_log->p_msg.log_state = plr.p_msg.log_state;
         }
         else
         {

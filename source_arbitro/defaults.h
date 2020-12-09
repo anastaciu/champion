@@ -1,5 +1,5 @@
 
-#include "../global.h"
+#include "../global.h" // MAX_LEN_NAME
 
 #define MAXPLAYER_DEFAULT 30       // número máximo de jogadores
 #define MAXPLAYER_NAME "MAXPLAYER" // nome da variável ambiente
@@ -10,7 +10,7 @@
 #define MIN_WAIT_TIME 10           // tempo mínio de espera
 #define MIN_PLAYERS 2              // numero mínimo de jogadores
 
-// Flags de erro ao receber e converter tempo de jogo e tempo de espera
+// flags de erro ao receber e converter tempo de jogo e tempo de espera
 enum CmdArgs
 {
     NO_ARGS,
@@ -21,7 +21,7 @@ enum CmdArgs
 };
 typedef enum CmdArgs CmdArgs;
 
-//Flags de erro para variáveis de ambiente
+// flags de erro para variáveis de ambiente
 enum GameDirParsing
 {
     ENV_ERROR = -1,
@@ -29,37 +29,37 @@ enum GameDirParsing
 };
 typedef enum GameDirParsing GameDirParsing;
 
-//Estrutura para dados de configuração do servidor
+// estrutura para dados de configuração do servidor
 typedef struct
 {
-    time_t wait_time;
-    time_t game_duration;
-    char *game_dir;
-    int n_players;
-    int player_count;
-    int srv_fifo_fd;
-    int n_games;
-    char** game_list;
+    time_t wait_time;     // tempo de espera
+    time_t game_duration; // tempo de duração
+    char *game_dir;       // diretoria dos jogos
+    int n_players;        // número máximo de jogadores
+    int player_count;     // número de jogadores ligados
+    int srv_fifo_fd;      // descritor do pipe do servidor
+    int n_games;          // número de jogos
+    char **game_list;     // lista de jogos
 } ServerSettings;
 
-//dados do cliente mantidos no servidor
-typedef struct{
-    pid_t payer_pid;
-    char name[MAX_LEN_NAME];
-    char player_fifo[MAX_LEN_NAME];
-    pid_t game_pid;
-    char game_name[MAX_LEN_NAME];
-    int clt_fifo_fd;
-    int points;
-} PlayerInfo;
-
-//estrutura da thread de verificação de dados e setup de login no servidor
+// dados do cliente mantidos no servidor
 typedef struct
 {
-    int keep_alive;
-    pthread_t tid;
-    void *retval;
-    PlayerInfo *logged_users;
-    ServerSettings *server_settings;
-    
+    pid_t payer_pid;                // pid do jogador
+    char name[MAX_LEN_NAME];        // nome do jogador
+    char player_fifo[MAX_LEN_NAME]; // nome do fifo do jogador
+    pid_t game_pid;                 // pid do jogo atribuído
+    char game_name[MAX_LEN_NAME];   // nome do jogo
+    int clt_fifo_fd;                // descritor do fifo do cliente
+    int points;                     //pontos do jogador
+} PlayerInfo;
+
+// estrutura da thread de verificação de dados e setup de login no servidor
+typedef struct
+{
+    int keep_alive;                  // variável de controlo de execução da thread
+    pthread_t tid;                   // id da thread
+    void *retval;                    // exit status da thread
+    PlayerInfo *logged_users;        // array de clientes ligados
+    ServerSettings *server_settings; // coonfigurações do servidor
 } LoginThr;

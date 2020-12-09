@@ -17,11 +17,11 @@ char *print_chars(size_t size, const char c)
     return temp_chars;
 }
 
-char* print_word(size_t size, const char *str)
+char *print_word(size_t size, const char *str)
 {
     char *t_str = malloc(size * 2 + 2);
     size_t i = 0, j = 0;
-    for ( ; i < size; i++, j += 2)
+    for (; i < size; i++, j += 2)
     {
         t_str[j] = str[i];
         t_str[j + 1] = ' ';
@@ -31,17 +31,18 @@ char* print_word(size_t size, const char *str)
     return t_str;
 }
 
-void print_user_interface(const char *word, size_t size, const char *spacer, const char *menu)
+void print_user_interface(const char *word, size_t size, const char *spacer, const char *menu, char *header, char *msg)
 {
-    char temp_ui[2048];   
+    char temp_ui[2048];
     char *temp = print_word(size, word);
     char *temp_chars = print_chars(size * 2 - 1, '*');
-    sprintf(temp_ui, "%s%s%s%s%s%s",  spacer, temp_chars, spacer, temp, spacer, temp_chars);
+
+    sprintf(temp_ui, "%s%s%s%s%s%s%s%s%s", header, msg, spacer, temp_chars, spacer, temp, spacer, temp_chars, menu);
+
+    print(temp_ui, STDOUT_FILENO);
+    fflush(stdout);
     free(temp);
     free(temp_chars);
-    print(temp_ui, STDOUT_FILENO);
-    print(menu, STDOUT_FILENO);
-    
 }
 
 void fill_word(char *str, size_t size, const char *c)

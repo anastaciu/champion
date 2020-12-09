@@ -20,12 +20,12 @@
 +-----------------------------------------------------------------------------+\n"
 
 #define MENU "\n\n* Escoha uma letra\n* ? para ver regras\n* Ou tente adivinhar a palavra\n>"
-#define LETTER_FOUND_OUT "\n\t\t'%c' foi encontrado. Continua com %zu tentativas"
-#define LETTER_NOT_FOUND_OUT "\n\t\t'%c' não foi encontrado. Tem mais %zu tentativas"
-#define WORD_FOUND_OUT "\n\n\n\t\tVocê acertou, '%s' era a palavra, tem %d pontos!!\n\n"
-#define WRONG_WORD_OUT "\n\n\n\t\tVocê não acertou na palavra. Restam %zu tentativas\n\n"
-#define GAME_OVER_OUT "\n\n\n\t\tVocê não acertou, a palavra era '%s', tem %d pontos!!\n\n"
-#define REPEAT_OUT "\t\t\tEssa letra já existe na palavra!!"
+#define LETTER_FOUND_OUT "\n\n\t\t'%c' foi encontrado. Continua com %zu tentativas\n\n"
+#define LETTER_NOT_FOUND_OUT "\n\n\t\t'%c' não foi encontrado. Tem mais %zu tentativas\n\n"
+#define WORD_FOUND_OUT "\n\n\t\tVocê acertou, '%s' é palavra correcta, tem %d pontos!!\n\n"
+#define WRONG_WORD_OUT "\n\n\t\tVocê não acertou na palavra. Restam %zu tentativas\n\n"
+#define GAME_OVER_OUT "\n\n\t\tVocê não acertou, a palavra era '%s', tem %d pontos!!\n\n"
+#define REPEAT_OUT "\n\n\t\t\tEssa letra já existe na palavra!!\n\n"
 
 //imprime espaçador para palavra
 #define SPACER "\n\n\t\t\t\t"

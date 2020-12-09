@@ -6,7 +6,7 @@ char *print_chars(size_t size, const char* c);
 char *print_word(size_t size, const char* str);
 
 //imprime o interface do jogo
-void print_user_interface(const char *word, size_t size, const char *spacer, const char *menu);
+void print_user_interface(const char *word, size_t size, const char *spacer, const char *menu, char *header, char *msg);
 
 //preenche a palavra str com o character c
-void fill_word(char* str, size_t size, const char* c);
+void fill_word(char *str, size_t size, const char *c);

@@ -132,6 +132,7 @@ void *login_thread(void *arg)
     while (l_thrd->keep_alive == 1)
     {
         int i;
+
         log_res = read(l_thrd->server_settings->srv_fifo_fd, &player, sizeof player);
 
         if (log_res < sizeof player)
@@ -212,7 +213,7 @@ void *login_thread(void *arg)
             if (exists)
             {   
                 int clt_fifo = l_thrd->logged_users[i].clt_fifo_fd;
-                char* fifo_name = l_thrd->logged_users[i].player_fifo;
+                
                 player.p_msg.log_state = QUITED;
 
                 write(l_thrd->logged_users[i].clt_fifo_fd, &player, sizeof player);
@@ -223,17 +224,24 @@ void *login_thread(void *arg)
                     i++;                 
                 }  
 
-                close(clt_fifo);
-                remove(fifo_name);             
+                close(clt_fifo);          
             }
         }
         else
         {
             player.p_msg.log_state = SUCCESS;
-            fprintf(stdout, "%s", player.p_msg.msg);
+            fprintf(stdout, "\nRecebida mensagem '%s' do cliente '%s'!\n>", player.p_msg.msg, player.name);
             fflush(stdout);
-            player.p_msg.msg[0] = 0;
-            write(clt_fifo_fd, &player, sizeof player);
+            char temp[strlen(player.p_msg.msg) + 50];
+            sprintf(temp, "Recebida mensagem %s, nenhuma ação executada!", player.p_msg.msg);
+            strcpy(player.p_msg.msg, temp);
+            for(i = 0; i < l_thrd->server_settings->player_count; i++){
+                if(player.player_pid == l_thrd->logged_users[i].payer_pid){
+                    write(l_thrd->logged_users[i].clt_fifo_fd, &player, sizeof player);
+                    break;
+                }
+            }
+            
         }       
     }
     return NULL;

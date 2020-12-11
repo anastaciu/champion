@@ -7,7 +7,7 @@
 #include <pthread.h>
 #include <string.h>
 
-#include "../global_interface.h"
+#include "../utils_interface.h"
 #include "user_interface.h"
 #include "logic_interface.h"
 #include "ui_constants.h"

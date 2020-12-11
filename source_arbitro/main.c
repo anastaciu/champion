@@ -11,7 +11,7 @@
 
 #include "defaults.h"
 #include "logic_interface.h"
-#include "../global_interface.h"
+#include "../utils_interface.h"
 #include "user_interface.h"
 #include "ui_constants.h"
 
@@ -275,6 +275,6 @@ int main(int argc, char **argv)
 
     //sincronização da thread the comunicação com o cliente
     login.keep_alive = 0;
-    //pthread_join(login.tid, &login.retval);
+    pthread_join(login.tid, &login.retval);
     //fim
 }

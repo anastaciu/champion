@@ -5,7 +5,7 @@
 #include <ctype.h>
 #include <stdlib.h>
 
-#include "../global_interface.h"
+#include "../utils_interface.h"
 
 char *print_chars(size_t size, const char c)
 {

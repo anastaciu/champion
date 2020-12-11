@@ -8,12 +8,13 @@
 #include <signal.h>
 #include <stdbool.h>
 
-#include "../global_interface.h"
+#include "../utils_interface.h"
 #include "logic_interface.h"
 #include "dictionary.h"
-#include "../global.h"
 #include "user_interface.h"
 #include "ui_constants.h"
+
+#define OUTPUT_SIZE 150     // tamanho máximo de mensagens de jogo
 
 GameData game = {0, 0, 0, 0};
 

@@ -1,3 +1,4 @@
+#include <stdlib.h> //size_t
 
 //imprime str no ficheiro com o descritor fd_out
 int print(const char* str, int fd_out);

@@ -28,18 +28,18 @@ int main(int argc, char **argv)
     }
     //fim
 
-    char output[OUTPUT_SIZE]; //char array para outputs vários
-    char input[INPUT_SIZE];   //char array para inputs
-    ServerSettings server;    //definições do servidor
-    GameDirParsing gde;       //variavel de controlo para rotina de obtenção de variável de ambiente GAMEDIR
-    LoginThr login;           //estrutura para thread de login de clientes
-    PlayerLog plr;
+    char output[OUTPUT_SIZE]; // char array para outputs vários
+    char input[INPUT_SIZE];   // char array para inputs
+    ServerSettings server;    // definições do servidor
+    GameDirParsing gde;       // variavel de controlo para rotina de obtenção de variável de ambiente GAMEDIR
+    LoginThr login;           // estrutura para thread de login de clientes
+    PlayerLog plr;            // estrutura de comunicação cliente/servidor
 
     memset(&plr, 0, sizeof plr);
 
-    server.player_count = 0; //reset do número de jogadores ligados ao servidor
+    server.player_count = 0; // reset do número de jogadores ligados ao servidor
 
-    //rotina de obtenção de argumentos da linha de comandos
+    // rotina de obtenção de argumentos da linha de comandos
     switch (command_line_arguments(&server.wait_time, &server.game_duration, argc, argv))
     {
     case NO_ARGS:

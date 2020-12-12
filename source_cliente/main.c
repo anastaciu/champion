@@ -111,6 +111,7 @@ int main()
     while (msg_trd.keep_alive == 1)
     {
         print(">", STDOUT_FILENO);
+
         get_user_input(input, STDIN_FILENO, sizeof input);
 
         if (strcmp(input, "#MYGAME") == 0)
@@ -121,7 +122,12 @@ int main()
         else
         {
             strcpy(player.p_msg.msg, input);
-            write(srv_fifo_fd, &player, sizeof player);
+
+            log_res = write(srv_fifo_fd, &player, sizeof player);
+            
+            if (log_res != sizeof player){
+                //erro
+            }
         }
     }
     //fim

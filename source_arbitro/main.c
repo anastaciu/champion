@@ -165,13 +165,7 @@ int main(int argc, char **argv)
                 for (int i = 0; i < server.player_count; i++)
                 {
                     print(clients[i].name, STDOUT_FILENO);
-                    print("\n", STDOUT_FILENO);
-                    print(clients[i].player_fifo, STDOUT_FILENO);
-                    print("\n", STDOUT_FILENO);
-                    print(clients[i].game_name, STDOUT_FILENO);
-                    print("\n", STDOUT_FILENO);
-
-
+                    print("\n", STDOUT_FILENO);                                    
                 }
             }
             else
@@ -222,7 +216,7 @@ int main(int argc, char **argv)
                 print(clients[i].name, STDOUT_FILENO);
                 print(" removido\n", STDOUT_FILENO);
 
-                int w = write(clients[i].clt_fifo_fd, &plr, sizeof plr); //falta verificação de erros
+                int w = write(clients[i].clt_fifo_fd, &plr, sizeof plr);
                 if(w != sizeof plr){
                     print("Erro de comunicação com o cliente!\n", STDERR_FILENO);
                 }

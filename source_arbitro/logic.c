@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <dirent.h>
@@ -119,11 +120,65 @@ GameDirParsing get_game_dir(char **game_dir)
     return ENV_SUCCESS;
 }
 
+void *game_thread(void *arg)
+{
+    GameThrd *g_trd = (GameThrd *)arg;
+    int nbytes;
+
+    if (pipe(g_trd->pli->fd_pipe_read) == -1)
+    {
+        //erro
+    }
+
+    if (pipe(g_trd->pli->fd_pipe_write) == -1)
+    {
+        //erro
+    }
+
+    if ((g_trd->pli->game_pid = fork()) == -1)
+    {
+        //erro
+    }
+
+    if (g_trd->pli->game_pid == 0)
+    {
+        close(STDOUT_FILENO);
+        dup(g_trd->pli->fd_pipe_read[1]);
+
+        close(STDIN_FILENO);
+        dup(g_trd->pli->fd_pipe_write[0]);
+
+        for (int i = 2; i <= g_trd->pli->fd_pipe_write[1]; i++)
+        {
+            close(i);
+        }
+
+        if (execl(g_trd->pli->game_name, g_trd->pli->game_name, NULL) == -1)
+        {
+            //erro
+        }
+    }
+
+    else
+    {
+        close(g_trd->pli->fd_pipe_write[0]);
+        close(g_trd->pli->fd_pipe_read[1]);   
+        
+        while((nbytes = read(g_trd->pli->fd_pipe_read[0], g_trd->pll->p_msg.msg, sizeof g_trd->pll->p_msg.msg)) > 0){         
+            //...
+        }
+        
+        wait(&g_trd->pli->points);                          
+    }
+    return NULL;
+}
+
 void *login_thread(void *arg)
 {
-    LoginThr *l_thrd = (LoginThr *)arg;   
+    LoginThr *l_thrd = (LoginThr *)arg;
     size_t log_res;
     PlayerLog player;
+    GameThrd gt[l_thrd->server_settings->n_players];
     int clt_fifo_fd;
     int game_index;
 
@@ -140,7 +195,7 @@ void *login_thread(void *arg)
             fprintf(stderr, "Dados do cliente corrompidos\n");
             return NULL;
         }
-        else if( player.p_msg.log_state == LOGGING)
+        else if (player.p_msg.log_state == LOGGING)
         {
             player.p_msg.log_state = SUCCESS;
 
@@ -167,8 +222,19 @@ void *login_thread(void *arg)
                 strcpy(l_thrd->logged_users[l_thrd->server_settings->player_count].name, player.name);
                 strcpy(l_thrd->logged_users[l_thrd->server_settings->player_count].player_fifo, player.player_fifo);
                 time_t t = time(NULL);
-                game_index = rand_r((unsigned int*)&t) % l_thrd->server_settings->n_games;
+                game_index = rand_r((unsigned int *)&t) % l_thrd->server_settings->n_games;
                 strncpy(l_thrd->logged_users[l_thrd->server_settings->player_count].game_name, l_thrd->server_settings->game_list[game_index], sizeof l_thrd->logged_users[l_thrd->server_settings->player_count].game_name);
+
+                gt[l_thrd->server_settings->player_count].pli = &l_thrd->logged_users[l_thrd->server_settings->player_count];
+                gt[l_thrd->server_settings->player_count].keep_alive = 1;
+                gt[l_thrd->server_settings->player_count].pll = &player;
+
+                if (pthread_create(&gt[l_thrd->server_settings->player_count].tid, NULL, game_thread, gt + l_thrd->server_settings->player_count))
+                {
+                    //erro
+                }
+                
+
                 l_thrd->server_settings->player_count++;
             }
 
@@ -182,24 +248,23 @@ void *login_thread(void *arg)
             if (clt_fifo_fd != -1)
             {
                 strncpy(player.p_msg.game_name, l_thrd->server_settings->game_list[game_index], sizeof l_thrd->logged_users[l_thrd->server_settings->player_count - 1].game_name);
+                
                 log_res = write(clt_fifo_fd, &player, sizeof player);
                 if (log_res != sizeof player)
                 {
                     fprintf(stderr, "Erro na resposta ao cliente\n");
-                    fflush(stdout);
-                    return NULL;
+                    fflush(stdout);                  
                 }
             }
             else
             {
                 perror("Erro ao abrir FIFO do cliente");
                 fflush(stdout);
-                return NULL;
             }
         }
 
-        else if (strcmp(player.p_msg.msg, "#QUIT") == 0)
-        {                     
+        else if (strcmp(player.p_msg.msg, "#QUIT") == 0 /*&& player.p_msg.log_state != LOGGING*/)
+        {
             bool exists = false;
             for (i = 0; i < l_thrd->server_settings->player_count; i++)
             {
@@ -211,38 +276,46 @@ void *login_thread(void *arg)
                 }
             }
             if (exists)
-            {   
+            {
                 int clt_fifo = l_thrd->logged_users[i].clt_fifo_fd;
-                
+
                 player.p_msg.log_state = QUITED;
 
                 write(l_thrd->logged_users[i].clt_fifo_fd, &player, sizeof player);
 
                 while (i < l_thrd->server_settings->player_count)
                 {
-                    l_thrd->logged_users[i] = l_thrd->logged_users[i + 1];   
-                    i++;                 
-                }  
+                    l_thrd->logged_users[i] = l_thrd->logged_users[i + 1];
+                    i++;
+                }
 
-                close(clt_fifo);          
+                close(clt_fifo);
             }
         }
         else
         {
             player.p_msg.log_state = SUCCESS;
+
+            
             fprintf(stdout, "\nRecebida mensagem '%s' do cliente '%s'!\n>", player.p_msg.msg, player.name);
             fflush(stdout);
             char temp[strlen(player.p_msg.msg) + 50];
             sprintf(temp, "Recebida mensagem %s, nenhuma ação executada!", player.p_msg.msg);
             strcpy(player.p_msg.msg, temp);
-            for(i = 0; i < l_thrd->server_settings->player_count; i++){
-                if(player.player_pid == l_thrd->logged_users[i].payer_pid){
+
+            for (i = 0; i < l_thrd->server_settings->player_count; i++)
+            {
+                if (player.player_pid == l_thrd->logged_users[i].payer_pid)
+                {                                          
                     write(l_thrd->logged_users[i].clt_fifo_fd, &player, sizeof player);
                     break;
                 }
             }
-            
-        }       
+        }
+    }
+    for (int i = 0; i < l_thrd->server_settings->player_count; i++)
+    {
+        pthread_join(gt[i].tid, &gt[i].retval);
     }
     return NULL;
 }

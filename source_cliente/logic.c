@@ -22,7 +22,7 @@ void *com_thread(void *arg)
                 close(msg_trd->clt_fifo_fd);
                 close(msg_trd->srv_fifo_fd);
                 remove(msg_trd->p_log->player_fifo);
-                print("\nFoi removido pelo árbitro!\n", STDOUT_FILENO);
+                print("\nFoi removido pelo árbitro! (Bloqueado no read do input, escrever algo para sair)\n", STDOUT_FILENO);
                 msg_trd->keep_alive = 0;           
 
             }
@@ -31,7 +31,7 @@ void *com_thread(void *arg)
                 close(msg_trd->clt_fifo_fd);
                 close(msg_trd->srv_fifo_fd);
                 remove(msg_trd->p_log->player_fifo);
-                print("\nO servidor foi encerrado!\n", STDOUT_FILENO);
+                print("\nO servidor foi encerrado! (Bloqueado no read do input, escrever algo para sair)\n", STDOUT_FILENO);
                 msg_trd->keep_alive = 0;     
 
             }
@@ -40,7 +40,7 @@ void *com_thread(void *arg)
                 close(msg_trd->clt_fifo_fd);
                 close(msg_trd->srv_fifo_fd);
                 remove(msg_trd->p_log->player_fifo);
-                print("\nSaiu do jogo!\n", STDOUT_FILENO); 
+                print("\nSaiu do jogo! (Bloqueado no read do input, escrever algo para sair)\n", STDOUT_FILENO); 
                 msg_trd->keep_alive = 0;             
             }
             else{

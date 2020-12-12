@@ -16,7 +16,6 @@
 int main()
 {
     PlayerLog player;
-    //PlayerMsg player.p_msg.msg;
     MsgThrd msg_trd;
     int srv_fifo_fd; //descritor do fifo do servidor
     int clt_fifo_fd; //descritor do fifo do cliente

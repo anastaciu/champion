@@ -17,9 +17,6 @@
 
 int main(int argc, char **argv)
 {
-
-    remove(SERVER_LOG_FIFO); /*DEBUG TIRAR*/
-
     //Cria FIFO do servidor
     if (mkfifo(SERVER_LOG_FIFO, 0777) == -1)
     {
@@ -38,6 +35,9 @@ int main(int argc, char **argv)
     memset(&plr, 0, sizeof plr);
 
     server.player_count = 0; // reset do número de jogadores ligados ao servidor
+
+    pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+    server.mut = &lock;
 
     // rotina de obtenção de argumentos da linha de comandos
     switch (command_line_arguments(&server.wait_time, &server.game_duration, argc, argv))
@@ -138,7 +138,7 @@ int main(int argc, char **argv)
     //fim
 
     //Criação da thread de login
-     if (pthread_create(&login.tid, NULL, login_thread, (void *)&login))
+    if (pthread_create(&login.tid, NULL, login_thread, (void *)&login))
     {
         perror("\nErro na criação da thread");
         remove(SERVER_LOG_FIFO);
@@ -147,32 +147,36 @@ int main(int argc, char **argv)
             free(server.game_dir);
         }
         exit(EXIT_FAILURE);
-    } 
+    }
     //fim
 
     //Rotina de leitura execução de comandos do teclado
     do
     {
         print(">", STDOUT_FILENO);
-    
+
         fflush(stdout);
         get_user_input(input, STDIN_FILENO, sizeof input);
+
         if (strcmp(input, "PLAYERS") == 0)
         {
+            pthread_mutex_lock(&lock);
             if (server.player_count > 0)
             {
                 print("Lista de jogadores:\n", STDOUT_FILENO);
                 for (int i = 0; i < server.player_count; i++)
                 {
                     print(clients[i].name, STDOUT_FILENO);
-                    print("\n", STDOUT_FILENO);                                    
+                    print("\n", STDOUT_FILENO);
                 }
             }
             else
             {
                 print("Não há jogadores\n", STDOUT_FILENO);
             }
+            pthread_mutex_unlock(&lock);
         }
+
         else if (strcmp(input, "GAMES") == 0)
         {
 
@@ -194,6 +198,7 @@ int main(int argc, char **argv)
         {
             int i;
             int exists = 0;
+            pthread_mutex_lock(&lock);
             for (i = 0; i < server.player_count; i++)
             {
                 if (strcmp(&input[1], clients[i].name) == 0)
@@ -210,33 +215,34 @@ int main(int argc, char **argv)
             else
             {
                 plr.p_msg.log_state = REMOVED;
-                //plr.p_msg.points = clients[i].points;             
-
-                print("Jogador ", STDOUT_FILENO);
-                print(clients[i].name, STDOUT_FILENO);
-                print(" removido\n", STDOUT_FILENO);
+                //plr.p_msg.points = clients[i].points;
 
                 int w = write(clients[i].clt_fifo_fd, &plr, sizeof plr);
-                if(w != sizeof plr){
+                if (w != sizeof plr)
+                {
                     print("Erro de comunicação com o cliente!\n", STDERR_FILENO);
                 }
-
-                close(clients[i].clt_fifo_fd);
-
-                while (i < server.player_count)
+                else
                 {
-                    clients[i] = clients[i + 1];
-                    i++;
+                    print("Jogador ", STDOUT_FILENO);
+                    print(clients[i].name, STDOUT_FILENO);
+                    print(" removido\n", STDOUT_FILENO);
+                    close(clients[i].clt_fifo_fd);                  
+                    while (i < server.player_count)
+                    {
+                        clients[i] = clients[i + 1];
+                        i++;
+                    }
                 }
             }
+            pthread_mutex_unlock(&lock);
         }
-        else if(strcmp(input, "EXIT") != 0)
+        else if (strcmp(input, "EXIT") != 0)
         {
             print("Comando não reconhecido!\n", STDOUT_FILENO);
         }
-        
-    } while (strcmp(input, "EXIT") != 0);
 
+    } while (strcmp(input, "EXIT") != 0);
 
     //fim
 
@@ -270,8 +276,7 @@ int main(int argc, char **argv)
     print("O servidor foi encerrado\n", STDOUT_FILENO);
 
     //sincronização da thread the comunicação com o cliente
-    
+
     //pthread_join(login.tid, &login.retval);
     //fim
-    
 }

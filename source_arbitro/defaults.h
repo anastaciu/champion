@@ -40,6 +40,8 @@ typedef struct
     int srv_fifo_fd;      // descritor do pipe do servidor
     int n_games;          // número de jogos
     char **game_list;     // lista de jogos
+    pthread_mutex_t* mut; // mutex
+    
 } ServerSettings;
 
 // dados do cliente mantidos no servidor

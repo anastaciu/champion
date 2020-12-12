@@ -179,7 +179,7 @@ void *login_thread(void *arg)
     LoginThr *l_thrd = (LoginThr *)arg;
     size_t log_res;
     PlayerLog player;
-    //GameThrd gt[l_thrd->server_settings->n_players];
+    GameThrd gt[l_thrd->server_settings->n_players];
     int clt_fifo_fd;
     int game_index;
 
@@ -226,14 +226,14 @@ void *login_thread(void *arg)
                 game_index = rand_r((unsigned int *)&t) % l_thrd->server_settings->n_games;
                 strncpy(l_thrd->logged_users[l_thrd->server_settings->player_count].game_name, l_thrd->server_settings->game_list[game_index], sizeof l_thrd->logged_users[l_thrd->server_settings->player_count].game_name);
 
-                //gt[l_thrd->server_settings->player_count].pli = &l_thrd->logged_users[l_thrd->server_settings->player_count];
-                //gt[l_thrd->server_settings->player_count].keep_alive = 1;
-                //gt[l_thrd->server_settings->player_count].pll = &player;
+                gt[l_thrd->server_settings->player_count].pli = &l_thrd->logged_users[l_thrd->server_settings->player_count];
+                gt[l_thrd->server_settings->player_count].keep_alive = 1;
+                gt[l_thrd->server_settings->player_count].pll = &player;
 
-                //if (pthread_create(&gt[l_thrd->server_settings->player_count].tid, NULL, game_thread, gt + l_thrd->server_settings->player_count))
-                //{
+                if (pthread_create(&gt[l_thrd->server_settings->player_count].tid, NULL, game_thread, gt + l_thrd->server_settings->player_count))
+                {
                     //erro
-                //}
+                }           
 
                 l_thrd->server_settings->player_count++;
             }

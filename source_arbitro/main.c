@@ -237,6 +237,7 @@ int main(int argc, char **argv)
         
     } while (strcmp(input, "EXIT") != 0);
 
+
     //fim
 
     //elimina memória reservada para game_dir caso ela tenha sido necessária
@@ -266,9 +267,11 @@ int main(int argc, char **argv)
     }
     free(server.game_list);
     //fim
+    print("O servidor foi encerrado\n", STDOUT_FILENO);
 
     //sincronização da thread the comunicação com o cliente
-    login.keep_alive = 0;
-    pthread_join(login.tid, &login.retval);
+    
+    //pthread_join(login.tid, &login.retval);
     //fim
+    
 }

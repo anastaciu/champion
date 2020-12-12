@@ -51,9 +51,9 @@ typedef struct
     pid_t game_pid;                 // pid do jogo atribuído
     char game_name[MAX_LEN_NAME];   // nome do jogo
     int clt_fifo_fd;                // descritor do fifo do cliente
-    int points;                     //pontos do jogador
-    int fd_pipe_read[2];
-    int fd_pipe_write[2];
+    int points;                     // pontos do jogador
+    int fd_pipe_read[2];            // unnamed pipe para ler o stdout do jogo
+    int fd_pipe_write[2];           // unnamed pipe para escrever no stdin do jogo
 } PlayerInfo;
 
 // estrutura da thread de verificação de dados e setup de login no servidor
@@ -66,10 +66,12 @@ typedef struct
     ServerSettings *server_settings; // coonfigurações do servidor
 } LoginThr;
 
-typedef struct{
-    int keep_alive;                  // variável de controlo de execução da thread
-    pthread_t tid;                   // id da thread
-    void *retval;                    // exit status da thread
-    PlayerInfo *pli;                 //info do jogador a passar à thread  
-    PlayerLog *pll;
-}GameThrd;
+//estrutura de dados usada em threads dos jogos
+typedef struct
+{
+    int keep_alive;  // variável de controlo de execução da thread
+    pthread_t tid;   // id da thread
+    void *retval;    // exit status da thread
+    PlayerInfo *pli; // info do jogador a passar à thread
+    PlayerLog *pll;  // estrutura de comunicação com o jogo
+} GameThrd;

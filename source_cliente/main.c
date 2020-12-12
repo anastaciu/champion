@@ -139,6 +139,6 @@ int main()
     //fim
 
     //sincronização da thread the comunicação com o cliente
-    pthread_join(msg_trd.tid, &msg_trd.retval);
+    //pthread_join(msg_trd.tid, &msg_trd.retval);
     //fim
 }

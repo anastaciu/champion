@@ -1,4 +1,6 @@
 
+#define OUTPUT_SIZE 150     // tamanho máximo de mensagens de jogo
+
 //estados do ciclo principal
 enum State{ HELP, LETTER_FOUND, LETTER_NOT_FOUND, WORD_FOUND, WRONG_WORD, REPEAT, GAME_OVER};
 

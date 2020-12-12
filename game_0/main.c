@@ -14,8 +14,6 @@
 #include "user_interface.h"
 #include "ui_constants.h"
 
-#define OUTPUT_SIZE 150     // tamanho máximo de mensagens de jogo
-
 GameData game = {0, 0, 0, 0};
 
 //handler para signal

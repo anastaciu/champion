@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <time.h>
 #include <sys/types.h>
+#include <signal.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <string.h>
@@ -160,21 +161,23 @@ int main(int argc, char **argv)
 
         if (strcmp(input, "PLAYERS") == 0)
         {
-            pthread_mutex_lock(&lock);
+
             if (server.player_count > 0)
             {
+                pthread_mutex_lock(&lock);
                 print("Lista de jogadores:\n", STDOUT_FILENO);
+
                 for (int i = 0; i < server.player_count; i++)
                 {
                     print(clients[i].name, STDOUT_FILENO);
                     print("\n", STDOUT_FILENO);
                 }
+                pthread_mutex_unlock(&lock);
             }
             else
             {
                 print("Não há jogadores\n", STDOUT_FILENO);
             }
-            pthread_mutex_unlock(&lock);
         }
 
         else if (strcmp(input, "GAMES") == 0)
@@ -208,6 +211,7 @@ int main(int argc, char **argv)
                     break;
                 }
             }
+            pthread_mutex_unlock(&lock);
             if (!exists)
             {
                 print("Não há jogadores com o nome indicado\n", STDOUT_FILENO);
@@ -224,18 +228,19 @@ int main(int argc, char **argv)
                 }
                 else
                 {
+                    pthread_mutex_lock(&lock);
                     print("Jogador ", STDOUT_FILENO);
                     print(clients[i].name, STDOUT_FILENO);
                     print(" removido\n", STDOUT_FILENO);
-                    close(clients[i].clt_fifo_fd);                  
+                    close(clients[i].clt_fifo_fd);
                     while (i < server.player_count)
                     {
                         clients[i] = clients[i + 1];
                         i++;
                     }
+                    pthread_mutex_unlock(&lock);
                 }
             }
-            pthread_mutex_unlock(&lock);
         }
         else if (strcmp(input, "EXIT") != 0)
         {
@@ -261,6 +266,8 @@ int main(int argc, char **argv)
         plr.p_msg.log_state = EXITED;
         write(clients[i].clt_fifo_fd, &plr, sizeof plr);
         close(clients[i].clt_fifo_fd);
+        kill(clients[i].game_pid, SIGUSR1);
+        kill(clients[i].payer_pid, SIGUSR1);
     }
 
     remove(SERVER_LOG_FIFO);

@@ -125,7 +125,7 @@ void *game_thread(void *arg)
     GameThrd *g_trd = (GameThrd *)arg;
 
     int nbytes;
-    
+
     if (pipe(g_trd->pli->fd_pipe_read) == -1)
     {
         //erro
@@ -140,7 +140,7 @@ void *game_thread(void *arg)
     {
         //erro
     }
-    
+
     if (g_trd->pli->game_pid == 0)
     {
         close(STDOUT_FILENO);
@@ -161,20 +161,28 @@ void *game_thread(void *arg)
     }
     else
     {
-        
         close(g_trd->pli->fd_pipe_write[0]);
         close(g_trd->pli->fd_pipe_read[1]);
-        pthread_mutex_lock(g_trd->mut);
-        while ((nbytes = read(g_trd->pli->fd_pipe_read[0], g_trd->pll->p_msg.msg, sizeof g_trd->pll->p_msg.msg)) > 0)
-        {
-            //...
-            pthread_mutex_unlock(g_trd->mut);
-            
-        }
 
-        wait(&g_trd->pli->points);
+
+        while(g_trd->keep_alive == 1)
+        {
+            pthread_mutex_lock(g_trd->mut);
+            nbytes = read(g_trd->pli->fd_pipe_read[0], g_trd->pll->p_msg.msg, sizeof g_trd->pll->p_msg.msg);
+            pthread_mutex_unlock(g_trd->mut);   
+               
+            if(nbytes <= 0) {
+                g_trd->keep_alive = 0;
+            }
+
+            //...
+
+            wait(&g_trd->pli->points);
+            g_trd->keep_alive = 0;
+        }            
     }
-    return NULL;
+    return NULL;  
+    
 }
 
 void *login_thread(void *arg)
@@ -212,16 +220,17 @@ void *login_thread(void *arg)
 
             if (l_thrd->server_settings->player_count > 0)
             {
+                pthread_mutex_lock(l_thrd->server_settings->mut);
                 for (i = 0; i < l_thrd->server_settings->player_count; i++)
                 {
-                    pthread_mutex_lock(l_thrd->server_settings->mut);
+
                     if (strcmp(player.name, l_thrd->logged_users[i].name) == 0)
                     {
                         player.p_msg.log_state = LOGGED;
                         break;
                     }
-                    pthread_mutex_unlock(l_thrd->server_settings->mut);
                 }
+                pthread_mutex_unlock(l_thrd->server_settings->mut);
             }
 
             if (player.p_msg.log_state != LOGGED && player.p_msg.log_state != MAX_USERS)
@@ -326,10 +335,10 @@ void *login_thread(void *arg)
             }
         }
     }
-    //for (int i = 0; i < l_thrd->server_settings->player_count; i++)
-    //{
-    //pthread_join(gt[i].tid, &gt[i].retval);
-    //}
+    for (int i = 0; i < l_thrd->server_settings->player_count; i++)
+    {
+        pthread_join(gt[i].tid, &gt[i].retval);
+    }
     return NULL;
 }
 

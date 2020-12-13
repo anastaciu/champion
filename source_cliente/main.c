@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <pthread.h>
 #include <string.h>
+#include <signal.h>
 
 #include "../utils_interface.h"
 #include "user_interface.h"
@@ -20,7 +21,7 @@ int main()
     int srv_fifo_fd; //descritor do fifo do servidor
     int clt_fifo_fd; //descritor do fifo do cliente
     size_t log_res;  //tamanho da resposta
-    //char output[OUTPUT_SIZE];  //char array para outputs
+
     char input[INPUT_SIZE]; //char array para inputs
 
     memset(&player, 0, sizeof player);
@@ -97,6 +98,9 @@ int main()
     msg_trd.srv_fifo_fd = srv_fifo_fd;
     msg_trd.keep_alive = 1;
     msg_trd.p_log = &player;
+    msg_trd.init_tid = pthread_self();
+
+    signal(SIGUSR1, sig_handler);
 
     //Criação da thread de login
     if (pthread_create(&msg_trd.tid, NULL, com_thread, (void *)&msg_trd))
@@ -136,8 +140,7 @@ int main()
     close(srv_fifo_fd);
     remove(player.player_fifo);
     //fim
-
     //sincronização da thread the comunicação com o cliente
-    //pthread_join(msg_trd.tid, &msg_trd.retval);
+    pthread_join(msg_trd.tid, &msg_trd.retval);
     //fim
 }

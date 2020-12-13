@@ -221,18 +221,21 @@ int main(int argc, char **argv)
                 plr.p_msg.log_state = REMOVED;
                 //plr.p_msg.points = clients[i].points;
 
+                pthread_mutex_lock(&lock);
                 int w = write(clients[i].clt_fifo_fd, &plr, sizeof plr);
+                pthread_mutex_unlock(&lock);
                 if (w != sizeof plr)
                 {
                     print("Erro de comunicação com o cliente!\n", STDERR_FILENO);
                 }
                 else
                 {
-                    pthread_mutex_lock(&lock);
                     print("Jogador ", STDOUT_FILENO);
                     print(clients[i].name, STDOUT_FILENO);
                     print(" removido\n", STDOUT_FILENO);
                     close(clients[i].clt_fifo_fd);
+                    kill(clients[i].payer_pid, SIGUSR1);
+                    pthread_mutex_lock(&lock);
                     while (i < server.player_count)
                     {
                         clients[i] = clients[i + 1];

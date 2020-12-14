@@ -37,8 +37,6 @@ int main(int argc, char **argv)
 
     server.player_count = 0; // reset do número de jogadores ligados ao servidor
 
-    pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
-    server.mut = &lock;
 
     // rotina de obtenção de argumentos da linha de comandos
     switch (command_line_arguments(&server.wait_time, &server.game_duration, argc, argv))
@@ -122,11 +120,13 @@ int main(int argc, char **argv)
     //fim
 
     PlayerInfo clients[server.n_players]; //array de clientes definido com base no número máximo de jogadores
+    GameThrd gtrd[server.n_players]; // array de threads para o jogo
 
     //Setup de dados para a thread de login
     login.keep_alive = 1;
     login.logged_users = clients;
     login.server_settings = &server;
+    login.gt = gtrd;
     //fim
 
     //abre fifo do servidor para leitura e escrita
@@ -164,7 +164,7 @@ int main(int argc, char **argv)
 
             if (server.player_count > 0)
             {
-                pthread_mutex_lock(&lock);
+     
                 print("Lista de jogadores:\n", STDOUT_FILENO);
 
                 for (int i = 0; i < server.player_count; i++)
@@ -175,7 +175,7 @@ int main(int argc, char **argv)
                     print(clients[i].game_name, STDOUT_FILENO);
                     print("\n", STDOUT_FILENO);
                 }
-                pthread_mutex_unlock(&lock);
+
             }
             else
             {
@@ -204,7 +204,7 @@ int main(int argc, char **argv)
         {
             int i;
             int exists = 0;
-            pthread_mutex_lock(&lock);
+
             for (i = 0; i < server.player_count; i++)
             {
                 if (strcmp(&input[1], clients[i].name) == 0)
@@ -214,18 +214,18 @@ int main(int argc, char **argv)
                     break;
                 }
             }
-            pthread_mutex_unlock(&lock);
+  
             if (!exists)
             {
                 print("Não há jogadores com o nome indicado\n", STDOUT_FILENO);
             }
             else
             {
-                pthread_mutex_lock(&lock);
+
                 plr.p_msg.log_state = REMOVED;
                 plr.p_msg.points = clients[i].points;           
                 int w = write(clients[i].clt_fifo_fd, &plr, sizeof plr);
-                pthread_mutex_unlock(&lock);
+
                 if (w != sizeof plr)
                 {
                     print("Erro de comunicação com o cliente!\n", STDERR_FILENO);
@@ -235,7 +235,7 @@ int main(int argc, char **argv)
                     print("Jogador ", STDOUT_FILENO);
                     print(clients[i].name, STDOUT_FILENO);
                     print(" removido\n", STDOUT_FILENO);
-                    pthread_mutex_lock(&lock);
+
                     close(clients[i].clt_fifo_fd);
                     kill(clients[i].player_pid, SIGUSR1);  
                     kill(clients[i].game_pid, SIGUSR1);
@@ -244,9 +244,10 @@ int main(int argc, char **argv)
                     while (i < server.player_count)
                     {
                         clients[i] = clients[i + 1];
+                        gtrd[i] = gtrd[i + 1];
                         i++;
                     }
-                    pthread_mutex_unlock(&lock);
+       
                 }
             }
         }

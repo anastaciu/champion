@@ -75,10 +75,14 @@ int main()
             break;
         case LOGGED:
             print("Já existe um cliente com o mesmo nome...\n", STDERR_FILENO);
+            close(srv_fifo_fd);
+            remove(player.player_fifo);
             exit(EXIT_FAILURE);
             break;
         case MAX_USERS:
             print("Atingido o número máximo de clientes, tente mais tarde...\n", STDERR_FILENO);
+            close(srv_fifo_fd);
+            remove(player.player_fifo);
             exit(EXIT_FAILURE);
             break;
 
@@ -125,8 +129,9 @@ int main()
             strcpy(player.p_msg.msg, input);
 
             log_res = write(srv_fifo_fd, &player, sizeof player);
-            
-            if (log_res != sizeof player){
+
+            if (log_res != sizeof player)
+            {
                 //erro
             }
         }

@@ -40,8 +40,6 @@ typedef struct
     int srv_fifo_fd;      // descritor do pipe do servidor
     int n_games;          // número de jogos
     char **game_list;     // lista de jogos
-    pthread_mutex_t *mut; // mutex
-
 } ServerSettings;
 
 // dados do cliente mantidos no servidor
@@ -58,16 +56,6 @@ typedef struct
     int fd_pipe_write[2];           // unnamed pipe para escrever no stdin do jogo
 } PlayerInfo;
 
-// estrutura da thread de verificação de dados e setup de login no servidor
-typedef struct
-{
-    int keep_alive;                  // variável de controlo de execução da thread
-    pthread_t tid;                   // id da thread
-    void *retval;                    // exit status da thread
-    PlayerInfo *logged_users;        // array de clientes ligados
-    ServerSettings *server_settings; // coonfigurações do servidor
-} LoginThr;
-
 //estrutura de dados usada em threads dos jogos
 typedef struct
 {
@@ -76,5 +64,15 @@ typedef struct
     void *retval;         // exit status da thread
     PlayerInfo *pli;      // info do jogador a passar à thread
     PlayerLog *pll;       // estrutura de comunicação com o jogo
-    pthread_mutex_t *mut; //mutex para bloqueio de dados
 } GameThrd;
+
+// estrutura da thread de verificação de dados e setup de login no servidor
+typedef struct
+{
+    int keep_alive;                  // variável de controlo de execução da thread
+    pthread_t tid;                   // id da thread
+    void *retval;                    // exit status da thread
+    PlayerInfo *logged_users;        // array de clientes ligados
+    ServerSettings *server_settings; // coonfigurações do servidor
+    GameThrd *gt;
+} LoginThr;

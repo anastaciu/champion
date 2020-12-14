@@ -117,7 +117,7 @@ int main()
 
         if (strcmp(input, "#MYGAME") == 0)
         {
-            printf("O seu jogo é %s!\n", player.p_msg.game_name);
+            printf("O seu jogo é %s!\n>", player.p_msg.game_name);
             fflush(stdout);
         }
         else

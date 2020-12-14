@@ -169,7 +169,10 @@ int main(int argc, char **argv)
 
                 for (int i = 0; i < server.player_count; i++)
                 {
+                    print("Nome: ", STDOUT_FILENO);
                     print(clients[i].name, STDOUT_FILENO);
+                    print(", jogo: ", STDOUT_FILENO);
+                    print(clients[i].game_name, STDOUT_FILENO);
                     print("\n", STDOUT_FILENO);
                 }
                 pthread_mutex_unlock(&lock);

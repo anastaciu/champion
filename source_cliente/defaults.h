@@ -13,5 +13,4 @@ typedef struct
     int clt_fifo_fd;    // descritor do pipe do cliente
     int srv_fifo_fd;    // descritor do pipe do servidor
     pthread_t init_tid; // pid da thread inicial
-
 } MsgThrd;

@@ -218,10 +218,9 @@ int main(int argc, char **argv)
             }
             else
             {
-                plr.p_msg.log_state = REMOVED;
-                //plr.p_msg.points = clients[i].points;
-
                 pthread_mutex_lock(&lock);
+                plr.p_msg.log_state = REMOVED;
+                plr.p_msg.points = clients[i].points;           
                 int w = write(clients[i].clt_fifo_fd, &plr, sizeof plr);
                 pthread_mutex_unlock(&lock);
                 if (w != sizeof plr)
@@ -233,9 +232,12 @@ int main(int argc, char **argv)
                     print("Jogador ", STDOUT_FILENO);
                     print(clients[i].name, STDOUT_FILENO);
                     print(" removido\n", STDOUT_FILENO);
-                    close(clients[i].clt_fifo_fd);
-                    kill(clients[i].payer_pid, SIGUSR1);
                     pthread_mutex_lock(&lock);
+                    close(clients[i].clt_fifo_fd);
+                    kill(clients[i].player_pid, SIGUSR1);  
+                    kill(clients[i].game_pid, SIGUSR1);
+                    close(clients[i].fd_pipe_read[0]);
+                    close(clients[i].fd_pipe_write[1]);               
                     while (i < server.player_count)
                     {
                         clients[i] = clients[i + 1];
@@ -270,7 +272,7 @@ int main(int argc, char **argv)
         write(clients[i].clt_fifo_fd, &plr, sizeof plr);
         close(clients[i].clt_fifo_fd);
         kill(clients[i].game_pid, SIGUSR1);
-        kill(clients[i].payer_pid, SIGUSR1);
+        kill(clients[i].player_pid, SIGUSR1);
     }
 
     remove(SERVER_LOG_FIFO);

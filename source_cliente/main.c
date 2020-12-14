@@ -113,8 +113,6 @@ int main()
     //ciclo de leitura de comandos
     while (msg_trd.keep_alive == 1)
     {
-        print(">", STDOUT_FILENO);
-
         get_user_input(input, STDIN_FILENO, sizeof input);
 
         if (strcmp(input, "#MYGAME") == 0)

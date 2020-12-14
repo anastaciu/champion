@@ -35,9 +35,9 @@ int main()
 	int old_index = 0;
 
 	char word[WORDSIZE];  //palavra a descobrir
-	char input[WORDSIZE]; //input do utilizador
+	char input[INPUT_SIZE]; //input do utilizador
 
-	//index da palavra escolhia aleatoriamente
+	//index da palavra escolhida aleatoriamente
 	srand((unsigned)time(NULL));
 
 	signal(SIGUSR1, sig_handler);

@@ -1,5 +1,5 @@
 #make todos os executáveis
-all: arbitro cliente g_01 jogo g_02
+all: arbitro cliente g_forca2 jogo g_forca1 g_forca3
 	
 # make do arbitro
 arbitro: arbitro_main.o arbitro_logic.o utils.o
@@ -21,12 +21,15 @@ cliente_main.o: source_cliente/main.c source_cliente/user_interface.h global.h s
 cliente_logic.o: source_cliente/logic.c source_cliente/defaults.h
 	gcc -c -Wall -Wextra -pedantic source_cliente/logic.c -o cliente_logic.o
 
-#make dos jogos game_000
-g_02: game_user.o game_000_main.o game_logic.o utils.o
-	gcc game_user.o game_000_main.o game_logic.o utils.o -o g_02
+#make dos jogos
+g_forca1: game_user.o game_000_main.o game_logic.o utils.o
+	gcc game_user.o game_000_main.o game_logic.o utils.o -o g_forca1
 
-g_01: game_user.o game_000_main.o game_logic.o utils.o
-	gcc game_user.o game_000_main.o game_logic.o utils.o -o g_01
+g_forca2: game_user.o game_000_main.o game_logic.o utils.o
+	gcc game_user.o game_000_main.o game_logic.o utils.o -o g_forca2
+
+g_forca3: game_user.o game_000_main.o game_logic.o utils.o
+	gcc game_user.o game_000_main.o game_logic.o utils.o -o g_forca3
 
 jogo: game_user.o game_000_main.o game_logic.o utils.o
 	gcc game_user.o game_000_main.o game_logic.o utils.o -o jogo
@@ -46,7 +49,7 @@ utils.o: utils.c
 
 #apaga ficheiros objeto e executáveis
 clean:
-	rm jogo g_02 g_01 arbitro cliente *.o
+	rm jogo g_forca1 g_forca2 g_forca3 arbitro cliente *.o
 
 #apaga executáveis
 rmexecs:

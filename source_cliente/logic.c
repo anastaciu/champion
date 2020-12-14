@@ -45,9 +45,9 @@ void *com_thread(void *arg)
             }
             else
             {
-                print("\nMensagem do servidor: ", STDOUT_FILENO);
+                //print("\nMensagem do servidor: ", STDOUT_FILENO);
                 print(plr.p_msg.msg, STDOUT_FILENO);
-                print("\n>", STDOUT_FILENO);
+                //print("\n>", STDOUT_FILENO);
             }
 
             strcpy(msg_trd->p_log->p_msg.game_name, plr.p_msg.game_name);

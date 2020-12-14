@@ -47,7 +47,7 @@ typedef struct
 // dados do cliente mantidos no servidor
 typedef struct
 {
-    pid_t payer_pid;                // pid do jogador
+    pid_t player_pid;               // pid do jogador
     char name[MAX_LEN_NAME];        // nome do jogador
     char player_fifo[MAX_LEN_NAME]; // nome do fifo do jogador
     pid_t game_pid;                 // pid do jogo atribuído
@@ -71,10 +71,10 @@ typedef struct
 //estrutura de dados usada em threads dos jogos
 typedef struct
 {
-    int keep_alive;  // variável de controlo de execução da thread
-    pthread_t tid;   // id da thread
-    void *retval;    // exit status da thread
-    PlayerInfo *pli; // info do jogador a passar à thread
-    PlayerLog *pll;  // estrutura de comunicação com o jogo
-    pthread_mutex_t *mut;
+    int keep_alive;       // variável de controlo de execução da thread
+    pthread_t tid;        // id da thread
+    void *retval;         // exit status da thread
+    PlayerInfo *pli;      // info do jogador a passar à thread
+    PlayerLog *pll;       // estrutura de comunicação com o jogo
+    pthread_mutex_t *mut; //mutex para bloqueio de dados
 } GameThrd;

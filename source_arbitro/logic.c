@@ -191,7 +191,6 @@ void *login_thread(void *arg)
     LoginThr *l_thrd = (LoginThr *)arg;
     size_t log_res;
     PlayerLog player;
-    //GameThrd gt[l_thrd->server_settings->n_players];
     int clt_fifo_fd;
     int game_index;
 

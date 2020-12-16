@@ -5,70 +5,119 @@
 #include <string.h>
 #include <pthread.h>
 #include <signal.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include "defaults.h"
 #include "../utils_interface.h"
+#include "ui_constants.h"
 
 void *com_thread(void *arg)
 {
     MsgThrd *msg_trd = (MsgThrd *)arg;
-    PlayerLog plr;
-    while (msg_trd->keep_alive == 1)
+    
+    
+    do
     {
-        int r = read(msg_trd->clt_fifo_fd, &plr, sizeof plr);
-        if (r == sizeof plr)
+        int r = read(msg_trd->clt_fifo_fd, msg_trd->msg, sizeof(ComMsg));
+        if (r == sizeof(ComMsg))
         {
-            if (plr.p_msg.log_state == REMOVED)
+            if (msg_trd->msg->log_state == REMOVED)
             {
                 close(msg_trd->clt_fifo_fd);
                 close(msg_trd->srv_fifo_fd);
-                remove(msg_trd->p_log->player_fifo);
+                remove(msg_trd->plr_fifo);
                 print("\nFoi removido pelo árbitro! (Processo termina dentro de 5 segundos)\n", STDOUT_FILENO);
-                msg_trd->keep_alive = 0;
+                pthread_kill(msg_trd->com_tid, SIGUSR1);
+                pthread_exit(NULL);
             }
-            else if (plr.p_msg.log_state == EXITED)
+            else if (msg_trd->msg->log_state == EXITED)
             {
                 close(msg_trd->clt_fifo_fd);
                 close(msg_trd->srv_fifo_fd);
-                remove(msg_trd->p_log->player_fifo);
+                remove(msg_trd->plr_fifo);
                 print("\nO servidor foi encerrado! (Processo termina dentro de 5 segundos)\n", STDOUT_FILENO);
-                msg_trd->keep_alive = 0;
+                pthread_kill(msg_trd->com_tid, SIGUSR1);
+                pthread_exit(NULL);
             }
-            else if (plr.p_msg.log_state == QUITED)
+            else if (msg_trd->msg->log_state == QUITED)
             {
                 close(msg_trd->clt_fifo_fd);
                 close(msg_trd->srv_fifo_fd);
-                remove(msg_trd->p_log->player_fifo);
+                remove(msg_trd->plr_fifo);
                 print("\nSaiu do jogo! (Processo termina dentro de 5 segundos)\n", STDOUT_FILENO);
-                msg_trd->keep_alive = 0;
-                pthread_kill(msg_trd->init_tid, SIGUSR1);
+                pthread_kill(msg_trd->com_tid, SIGUSR1);
+                pthread_exit(NULL);
+            }
+            else if (msg_trd->msg->log_state == STARTED)
+            {
+                //abre fifo do servidor para escrita
+                msg_trd->srv_fifo_fd = open(SERVER_LOG_FIFO, O_WRONLY);
+
+                if (msg_trd->srv_fifo_fd == -1)
+                {
+                    perror(ERROR_SERVER_FIFO);
+                    remove(msg_trd->plr_fifo);
+                    msg_trd->keep_alive = 0;
+                }
+                print(msg_trd->msg->msg, STDOUT_FILENO);
+                //fim
             }
             else
             {
-                //print("\nMensagem do servidor: ", STDOUT_FILENO);
-                print(plr.p_msg.msg, STDOUT_FILENO);
-                //print("\n>", STDOUT_FILENO);
+                print(msg_trd->msg->msg, STDOUT_FILENO);
+                
             }
-
-            strcpy(msg_trd->p_log->p_msg.game_name, plr.p_msg.game_name);
-            strcpy(msg_trd->p_log->p_msg.msg, plr.p_msg.msg);
-            msg_trd->p_log->p_msg.points = plr.p_msg.points;
-            msg_trd->p_log->p_msg.log_state = plr.p_msg.log_state;
         }
         else
         {
             print("\nDados corrompidos\n", STDIN_FILENO);
-            msg_trd->keep_alive = 0;
+            //msg_trd->keep_alive = 0;
         }
-    }
-    return NULL;
+    } while (msg_trd->keep_alive == 1);
+    pthread_exit(msg_trd->retval);
 }
 
 void sig_handler(int sig)
 {
     if (sig == SIGUSR1)
     {
-        sleep(5);
-        exit(EXIT_SUCCESS);
+        pthread_exit(NULL);
     }
+}
+
+void *cli_thread(void *arg)
+{
+    char input[INPUT_SIZE]; //char array para inputs
+    int log_res;            //tamanho da resposta
+    CliThrd *cli_trd = (CliThrd *)arg;
+    ComMsg msg;
+
+    signal(SIGUSR1, sig_handler);
+
+    //ciclo de leitura de comandos
+    while (cli_trd->keep_alive == 1)
+    {
+        get_user_input(input, STDIN_FILENO, sizeof input);
+
+        if (strcmp(input, "#MYGAME") == 0)
+        {
+            printf("O seu jogo é %s!\n>", cli_trd->game_name);
+            fflush(stdout);
+        }
+        else
+        {
+            strcpy(msg.msg, input);
+            msg.log_state = PLAYING;
+            log_res = write(cli_trd->srv_fifo_fd, &msg, sizeof sizeof msg);
+
+            if (log_res == -1)
+            {
+                print("Aguarde pelo início do jogo...", STDOUT_FILENO);
+            }
+        }
+    }
+    pthread_exit(NULL);
+    //fim
 }

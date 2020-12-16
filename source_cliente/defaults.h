@@ -9,8 +9,18 @@ typedef struct
     int keep_alive;     // variável de controlo de execução da thread
     pthread_t tid;      // identificador da thread
     void *retval;       // exit status da thread
-    PlayerLog *p_log;   // estrutura de comunicação entre cliente e servidor
+    ComMsg *msg;        // estrutura de comunicação entre cliente e servidor
     int clt_fifo_fd;    // descritor do pipe do cliente
     int srv_fifo_fd;    // descritor do pipe do servidor
-    pthread_t init_tid; // pid da thread inicial
+    char *plr_fifo;
+    pthread_t com_tid; 
 } MsgThrd;
+
+typedef struct 
+{
+    int keep_alive;
+    void *retval;
+    pthread_t tid;
+    char *game_name;
+    int srv_fifo_fd;
+} CliThrd;

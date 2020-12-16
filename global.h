@@ -16,7 +16,9 @@ typedef enum
     REMOVED,
     SUSPENDED,
     EXITED,
-    QUITED
+    QUITED, 
+    STARTED,
+    PLAYING
 } LogState; // estados de login
 
 // estrutura simples para nome e  pontos de jogador
@@ -42,5 +44,4 @@ typedef struct
     char name[MAX_LEN_NAME];        // nome do jogador
     pid_t player_pid;               // pid do processo cliente
     char player_fifo[MAX_LEN_NAME]; // nome do fifo do cliente
-    ComMsg p_msg;                   // mensagens de texto servidor/cliente, contém mensagens para e do jogo e comando(s) do cliente
 } PlayerLog;

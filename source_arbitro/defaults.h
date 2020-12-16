@@ -59,20 +59,37 @@ typedef struct
 //estrutura de dados usada em threads dos jogos
 typedef struct
 {
-    int keep_alive;       // variável de controlo de execução da thread
-    pthread_t tid;        // id da thread
-    void *retval;         // exit status da thread
-    PlayerInfo *pli;      // info do jogador a passar à thread
-    PlayerLog *pll;       // estrutura de comunicação com o jogo
+    int keep_alive;  // variável de controlo de execução da thread
+    pthread_t tid;   // id da thread
+    void *retval;    // exit status da thread
+    PlayerInfo *pli; // info do jogador a passar à thread
+    
 } GameThrd;
 
 // estrutura da thread de verificação de dados e setup de login no servidor
 typedef struct
 {
-    int keep_alive;                  // variável de controlo de execução da thread
-    pthread_t tid;                   // id da thread
-    void *retval;                    // exit status da thread
-    PlayerInfo *logged_users;        // array de clientes ligados
-    ServerSettings *server_settings; // coonfigurações do servidor
+    int keep_alive;           // variável de controlo de execução da thread
+    pthread_t tid;            // id da thread
+    void *retval;             // exit status da thread
+    PlayerInfo *logged_users; // array de clientes ligados
+    ServerSettings *server;
     GameThrd *gt;
 } LoginThr;
+
+typedef struct
+{
+    pthread_t tid; // id da thread
+    void *retval;  // exit status da thread
+    time_t *wait_time;
+    pthread_t log_tid;
+} Timer;
+
+typedef struct
+{
+    ServerSettings *server;
+    PlayerInfo *clients;
+    GameThrd *gtrd;
+    void *retval;  // exit status da thread
+    pthread_t tid; // id da thread
+} AdminThread;

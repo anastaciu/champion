@@ -27,16 +27,15 @@ int main(int argc, char **argv)
     //fim
 
     char output[OUTPUT_SIZE]; // char array para outputs vários
-    char input[INPUT_SIZE];   // char array para inputs
     ServerSettings server;    // definições do servidor
     GameDirParsing gde;       // variavel de controlo para rotina de obtenção de variável de ambiente GAMEDIR
     LoginThr login;           // estrutura para thread de login de clientes
-    PlayerLog plr;            // estrutura de comunicação cliente/servidor
-
-    memset(&plr, 0, sizeof plr);
+    AdminThread admin;
+    Timer timer;
+    ComMsg msg;
+    //int keep_alive = 1;
 
     server.player_count = 0; // reset do número de jogadores ligados ao servidor
-
 
     // rotina de obtenção de argumentos da linha de comandos
     switch (command_line_arguments(&server.wait_time, &server.game_duration, argc, argv))
@@ -120,14 +119,8 @@ int main(int argc, char **argv)
     //fim
 
     PlayerInfo clients[server.n_players]; //array de clientes definido com base no número máximo de jogadores
-    GameThrd gtrd[server.n_players]; // array de threads para o jogo
-
-    //Setup de dados para a thread de login
-    login.keep_alive = 1;
-    login.logged_users = clients;
-    login.server_settings = &server;
-    login.gt = gtrd;
-    //fim
+    GameThrd gtrd[server.n_players];      // array de threads para o jogo
+    memset(clients, 0, sizeof clients);
 
     //abre fifo do servidor para leitura e escrita
     if ((server.srv_fifo_fd = open(SERVER_LOG_FIFO, O_RDWR)) == -1)
@@ -136,6 +129,14 @@ int main(int argc, char **argv)
         remove(SERVER_LOG_FIFO);
         return EXIT_FAILURE;
     }
+    //fim
+
+    //Setup de dados para a thread de login
+    login.keep_alive = 1;
+    login.logged_users = clients;
+    login.server = &server;
+    server.player_count = 0;
+    login.gt = gtrd;
     //fim
 
     //Criação da thread de login
@@ -151,114 +152,96 @@ int main(int argc, char **argv)
     }
     //fim
 
-    //Rotina de leitura execução de comandos do teclado
-    do
+    timer.wait_time = &server.wait_time;
+    timer.log_tid = login.tid;
+
+    if (pthread_create(&timer.tid, NULL, time_handler, (void *)&timer))
     {
-        print(">", STDOUT_FILENO);
-
-        fflush(stdout);
-        get_user_input(input, STDIN_FILENO, sizeof input);
-
-        if (strcmp(input, "PLAYERS") == 0)
+        perror("\nErro na criação da thread");
+        remove(SERVER_LOG_FIFO);
+        if (gde == ENV_ERROR)
         {
-
-            if (server.player_count > 0)
-            {
-     
-                print("Lista de jogadores:\n", STDOUT_FILENO);
-
-                for (int i = 0; i < server.player_count; i++)
-                {
-                    print("Nome: ", STDOUT_FILENO);
-                    print(clients[i].name, STDOUT_FILENO);
-                    print(", jogo: ", STDOUT_FILENO);
-                    print(clients[i].game_name, STDOUT_FILENO);
-                    print("\n", STDOUT_FILENO);
-                }
-
-            }
-            else
-            {
-                print("Não há jogadores\n", STDOUT_FILENO);
-            }
+            free(server.game_dir);
         }
+        exit(EXIT_FAILURE);
+    }
 
-        else if (strcmp(input, "GAMES") == 0)
+    admin.clients = clients;
+    admin.gtrd = gtrd;
+    admin.server = &server;
+
+    if (pthread_create(&admin.tid, NULL, admin_thread, (void *)&admin))
+    {
+        perror("\nErro na criação da thread");
+        remove(SERVER_LOG_FIFO);
+        if (gde == ENV_ERROR)
         {
-
-            if (server.n_games > 0)
-            {
-                print("Lista de jogos:\n", STDOUT_FILENO);
-                for (int i = 0; i < server.n_games; i++)
-                {
-                    print(server.game_list[i], STDOUT_FILENO);
-                    print("\n", STDOUT_FILENO);
-                }
-            }
-            else
-            {
-                print("Não foram carregados jogos", STDOUT_FILENO); //não deve acontecer, sem jogos o servidor não é lançado
-            }
+            free(server.game_dir);
         }
-        else if (input[0] == 'K')
-        {
-            int i;
-            int exists = 0;
-
-            for (i = 0; i < server.player_count; i++)
-            {
-                if (strcmp(&input[1], clients[i].name) == 0)
-                {
-                    server.player_count--;
-                    exists = 1;
-                    break;
-                }
-            }
-  
-            if (!exists)
-            {
-                print("Não há jogadores com o nome indicado\n", STDOUT_FILENO);
-            }
-            else
-            {
-
-                plr.p_msg.log_state = REMOVED;
-                plr.p_msg.points = clients[i].points;           
-                int w = write(clients[i].clt_fifo_fd, &plr, sizeof plr);
-
-                if (w != sizeof plr)
-                {
-                    print("Erro de comunicação com o cliente!\n", STDERR_FILENO);
-                }
-                else
-                {
-                    print("Jogador ", STDOUT_FILENO);
-                    print(clients[i].name, STDOUT_FILENO);
-                    print(" removido\n", STDOUT_FILENO);
-
-                    close(clients[i].clt_fifo_fd);
-                    kill(clients[i].player_pid, SIGUSR1);  
-                    kill(clients[i].game_pid, SIGUSR1);
-                    close(clients[i].fd_pipe_read[0]);
-                    close(clients[i].fd_pipe_write[1]);               
-                    while (i < server.player_count)
-                    {
-                        clients[i] = clients[i + 1];
-                        gtrd[i] = gtrd[i + 1];
-                        i++;
-                    }
-       
-                }
-            }
-        }
-        else if (strcmp(input, "EXIT") != 0)
-        {
-            print("Comando não reconhecido!\n", STDOUT_FILENO);
-        }
-
-    } while (strcmp(input, "EXIT") != 0);
-
+        exit(EXIT_FAILURE);
+    }
     //fim
+
+    pthread_join(login.tid, &login.retval);
+    pthread_join(timer.tid, &timer.retval);
+
+    memset(&msg, 0, sizeof msg);
+
+    if (server.player_count < 2)
+    {
+        print("\nServidor encerrado, menos de 2 jogadores inscritos!\n", STDOUT_FILENO);
+        if (gde == ENV_ERROR)
+        {
+            free(server.game_dir);
+        }
+
+        for (int i = 0; i < server.n_games; i++)
+        {
+            free(server.game_list[i]);
+        }
+        free(server.game_list);
+        msg.log_state = EXITED;
+        if (server.player_count == 1)
+        {
+            write(clients[0].clt_fifo_fd, &msg, sizeof msg);
+        }
+        
+        close(server.srv_fifo_fd);
+        remove(SERVER_LOG_FIFO);
+        pthread_kill(admin.tid, SIGUSR1);
+        pthread_join(admin.tid, &admin.retval);
+        exit(EXIT_SUCCESS);
+    }
+
+    memset(&msg, 0, sizeof msg);
+
+    msg.log_state = STARTED;
+    strcpy(msg.msg, "\nComeçou o jogo...\n\n");
+
+    for (int i = 0; i < server.player_count; i++)
+    {
+
+        write(clients[i].clt_fifo_fd, &msg, sizeof msg);
+        gtrd[i].pli = &clients[i];
+        gtrd[i].keep_alive = 1;
+
+        pthread_create(&gtrd[i].tid, NULL, game_thread, (void *)&gtrd[i]);
+    }
+
+    pthread_join(admin.tid, &admin.retval);
+
+    for (int i = 0; i < server.player_count; i++)
+    {
+        if (clients[i].game_pid != 0)
+        {
+            kill(clients[i].game_pid, SIGUSR1);
+        }
+        pthread_kill(gtrd[i].tid, SIGUSR1);
+        msg.log_state = EXITED;
+        write(clients[i].clt_fifo_fd, &msg, sizeof msg);
+        close(clients[i].clt_fifo_fd);
+        pthread_join(gtrd[i].tid, &gtrd[i].retval);
+    }
 
     //elimina memória reservada para game_dir caso ela tenha sido necessária
     if (gde == ENV_ERROR)
@@ -269,16 +252,6 @@ int main(int argc, char **argv)
 
     //Fecha fifos abertos e elimina FIFO do servidor
     close(server.srv_fifo_fd);
-
-    for (int i = 0; i < server.player_count; i++)
-    {
-        plr.p_msg.log_state = EXITED;
-        write(clients[i].clt_fifo_fd, &plr, sizeof plr);
-        close(clients[i].clt_fifo_fd);
-        kill(clients[i].game_pid, SIGUSR1);
-        kill(clients[i].player_pid, SIGUSR1);
-    }
-
     remove(SERVER_LOG_FIFO);
     //fim
 
@@ -290,9 +263,4 @@ int main(int argc, char **argv)
     free(server.game_list);
     //fim
     print("O servidor foi encerrado\n", STDOUT_FILENO);
-
-    //sincronização da thread the comunicação com o cliente
-
-    //pthread_join(login.tid, &login.retval);
-    //fim
 }

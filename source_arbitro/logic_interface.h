@@ -16,3 +16,9 @@ void *login_thread(void *arg);
 
 //Retorna a lista de nomes de ficheiros presentes na diretoria path
 char **list_games(const char *path, int *n_games);
+
+void *time_handler(void *arg);
+
+void *admin_thread(void *arg);
+
+void *game_thread(void *arg);

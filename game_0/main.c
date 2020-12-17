@@ -38,7 +38,7 @@ int main()
 	char input[INPUT_SIZE]; //input do utilizador
 
 	//index da palavra escolhida aleatoriamente
-	srand((unsigned)time(NULL));
+	srand(getpid());
 
 	signal(SIGUSR1, sig_handler);
 

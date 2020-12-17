@@ -61,7 +61,11 @@ int main()
     //Rotina de login no servidor com verificação da resposta e do estado de login
     print(NAME_PROMPT_OUT, STDOUT_FILENO);
     get_user_input(player.name, STDIN_FILENO, MAX_LEN_NAME);
-    write(srv_fifo_fd, &player, sizeof player);
+
+    log_res = write(srv_fifo_fd, &player, sizeof player);
+
+    printf(" %d ", log_res);
+    fflush(stdout);
 
     log_res = read(clt_fifo_fd, &state, sizeof state);
 
@@ -105,7 +109,8 @@ int main()
     cli_trd.keep_alive = 1;
     cli_trd.game_name = msg.game_name;
     cli_trd.srv_fifo_fd = srv_fifo_fd;
-
+    cli_trd.clt_pid = player.player_pid;
+    
     //Criação da thread de jogo e comandos
     if (pthread_create(&cli_trd.tid, NULL, cli_thread, (void *)&cli_trd))
     {

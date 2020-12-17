@@ -22,3 +22,6 @@ void *time_handler(void *arg);
 void *admin_thread(void *arg);
 
 void *game_thread(void *arg);
+
+void *game_clt_thread(void *arg);
+

@@ -31,9 +31,10 @@ int main(int argc, char **argv)
     GameDirParsing gde;       // variavel de controlo para rotina de obtenção de variável de ambiente GAMEDIR
     LoginThr login;           // estrutura para thread de login de clientes
     AdminThread admin;
-    Timer timer;
+    TimerTrd timer;
     ComMsg msg;
-    //int keep_alive = 1;
+    CltMsgTrd clt_msg;
+    pthread_mutex_t mutex;
 
     server.player_count = 0; // reset do número de jogadores ligados ao servidor
 
@@ -131,12 +132,15 @@ int main(int argc, char **argv)
     }
     //fim
 
+    pthread_mutex_init(&mutex, NULL);
+
     //Setup de dados para a thread de login
     login.keep_alive = 1;
     login.logged_users = clients;
     login.server = &server;
     server.player_count = 0;
     login.gt = gtrd;
+    login.mutex = &mutex;
     //fim
 
     //Criação da thread de login
@@ -169,6 +173,7 @@ int main(int argc, char **argv)
     admin.clients = clients;
     admin.gtrd = gtrd;
     admin.server = &server;
+    admin.mutex = &mutex;
 
     if (pthread_create(&admin.tid, NULL, admin_thread, (void *)&admin))
     {
@@ -224,9 +229,17 @@ int main(int argc, char **argv)
         write(clients[i].clt_fifo_fd, &msg, sizeof msg);
         gtrd[i].pli = &clients[i];
         gtrd[i].keep_alive = 1;
-
+        gtrd[i].mutex = &mutex;
         pthread_create(&gtrd[i].tid, NULL, game_thread, (void *)&gtrd[i]);
     }
+
+    clt_msg.keep_alive = 1;
+    clt_msg.pli = clients;
+    clt_msg.server = &server;
+    clt_msg.gtrd = gtrd;
+    clt_msg.mutex = &mutex;
+
+    pthread_create(&clt_msg.tid, NULL, game_clt_thread, (void*) &clt_msg);
 
     pthread_join(admin.tid, &admin.retval);
 
@@ -242,6 +255,8 @@ int main(int argc, char **argv)
         close(clients[i].clt_fifo_fd);
         pthread_join(gtrd[i].tid, &gtrd[i].retval);
     }
+
+    pthread_mutex_destroy(&mutex);
 
     //elimina memória reservada para game_dir caso ela tenha sido necessária
     if (gde == ENV_ERROR)

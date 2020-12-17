@@ -17,7 +17,6 @@ void *com_thread(void *arg)
 {
     MsgThrd *msg_trd = (MsgThrd *)arg;
     
-    
     do
     {
         int r = read(msg_trd->clt_fifo_fd, msg_trd->msg, sizeof(ComMsg));
@@ -28,7 +27,7 @@ void *com_thread(void *arg)
                 close(msg_trd->clt_fifo_fd);
                 close(msg_trd->srv_fifo_fd);
                 remove(msg_trd->plr_fifo);
-                print("\nFoi removido pelo árbitro! (Processo termina dentro de 5 segundos)\n", STDOUT_FILENO);
+                print("\nFoi removido pelo árbitro!\n", STDOUT_FILENO);
                 pthread_kill(msg_trd->com_tid, SIGUSR1);
                 pthread_exit(NULL);
             }
@@ -37,7 +36,7 @@ void *com_thread(void *arg)
                 close(msg_trd->clt_fifo_fd);
                 close(msg_trd->srv_fifo_fd);
                 remove(msg_trd->plr_fifo);
-                print("\nO servidor foi encerrado! (Processo termina dentro de 5 segundos)\n", STDOUT_FILENO);
+                print("\nO servidor foi encerrado!\n", STDOUT_FILENO);
                 pthread_kill(msg_trd->com_tid, SIGUSR1);
                 pthread_exit(NULL);
             }
@@ -46,7 +45,7 @@ void *com_thread(void *arg)
                 close(msg_trd->clt_fifo_fd);
                 close(msg_trd->srv_fifo_fd);
                 remove(msg_trd->plr_fifo);
-                print("\nSaiu do jogo! (Processo termina dentro de 5 segundos)\n", STDOUT_FILENO);
+                print("\nSaiu do jogo!\n", STDOUT_FILENO);
                 pthread_kill(msg_trd->com_tid, SIGUSR1);
                 pthread_exit(NULL);
             }
@@ -93,6 +92,9 @@ void *cli_thread(void *arg)
     int log_res;            //tamanho da resposta
     CliThrd *cli_trd = (CliThrd *)arg;
     ComMsg msg;
+    
+    memset(&msg, 0, sizeof msg);
+    msg.player_pid = cli_trd->clt_pid;
 
     signal(SIGUSR1, sig_handler);
 
@@ -110,7 +112,7 @@ void *cli_thread(void *arg)
         {
             strcpy(msg.msg, input);
             msg.log_state = PLAYING;
-            log_res = write(cli_trd->srv_fifo_fd, &msg, sizeof sizeof msg);
+            log_res = write(cli_trd->srv_fifo_fd, &msg, sizeof msg);
 
             if (log_res == -1)
             {

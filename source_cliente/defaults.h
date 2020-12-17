@@ -23,4 +23,7 @@ typedef struct
     pthread_t tid;
     char *game_name;
     int srv_fifo_fd;
+    int clt_pid;
 } CliThrd;
+
+

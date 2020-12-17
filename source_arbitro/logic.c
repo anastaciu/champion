@@ -132,7 +132,6 @@ void *game_thread(void *arg)
     GameThrd *g_trd = (GameThrd *)arg;
     ComMsg msg;
     memset(&msg, 0, sizeof msg);
-
     signal(SIGUSR1, sig_exit);
 
     int nbytes;
@@ -177,7 +176,7 @@ void *game_thread(void *arg)
 
         while (g_trd->keep_alive == 1)
         {
-            nbytes = read(g_trd->pli->fd_pipe_read[0], &msg, sizeof msg);
+            nbytes = read(g_trd->pli->fd_pipe_read[0], &msg.msg, sizeof msg.msg);
             msg.msg[nbytes] = '\0';
 
             if (nbytes <= 0)
@@ -192,7 +191,6 @@ void *game_thread(void *arg)
         }
 
         wait(&g_trd->pli->points);
-        g_trd->keep_alive = 0;
     }
 
     return NULL;
@@ -200,7 +198,7 @@ void *game_thread(void *arg)
 
 void *time_handler(void *arg)
 {
-    Timer *t = (Timer *)arg;
+    TimerTrd *t = (TimerTrd *)arg;
     while (*t->wait_time > 0)
     {
         sleep(1);
@@ -215,7 +213,7 @@ void *login_thread(void *arg)
     LoginThr *l_thrd = (LoginThr *)arg;
     size_t log_res;
     PlayerLog player;
-    LogState state = SUCCESS;
+    LogState state;
     int clt_fifo_fd;
     int game_index;
 
@@ -226,7 +224,7 @@ void *login_thread(void *arg)
     while (l_thrd->keep_alive == 1)
     {
         int i;
-
+        state = SUCCESS;
         log_res = read(l_thrd->server->srv_fifo_fd, &player, sizeof player);
 
         if (log_res != sizeof player)
@@ -391,43 +389,38 @@ void *admin_thread(void *arg)
             {
                 if (strcmp(&input[1], admin->clients[i].name) == 0)
                 {
-                    admin->server->player_count--;
                     exists = 1;
-                    break;
-                }
-            }
-
-            if (!exists)
-            {
-                print("Não há jogadores com o nome indicado\n", STDOUT_FILENO);
-            }
-            else
-            {
-
-                msg.log_state = REMOVED;
-
-                int w = write(admin->clients[i].clt_fifo_fd, &msg, sizeof msg);
-
-                if (w != sizeof msg)
-                {
-                    print("Erro de comunicação com o cliente!\n", STDERR_FILENO);
-                }
-                else
-                {
                     print("Jogador ", STDOUT_FILENO);
                     print(admin->clients[i].name, STDOUT_FILENO);
-                    print(" removido\n", STDOUT_FILENO);
-
+                    print(" removido\n", STDOUT_FILENO);                 
+                    msg.log_state = REMOVED;
+                    int w = write(admin->clients[i].clt_fifo_fd, &msg, sizeof msg);
+                    if (w != sizeof msg)
+                    {
+                        print("Erro de comunicação com o cliente!\n", STDERR_FILENO);
+                    }
                     close(admin->clients[i].clt_fifo_fd);
-                    kill(admin->clients[i].player_pid, SIGUSR1);
-
+                    close(admin->clients[i].fd_pipe_read[0]);
+                    close(admin->clients[i].fd_pipe_write[1]);
+                    kill(admin->clients[i].game_pid, SIGUSR1);
+                    pthread_mutex_lock(admin->mutex);
+                    admin->server->player_count--;
                     while (i < admin->server->player_count)
                     {
                         admin->clients[i] = admin->clients[i + 1];
                         admin->gtrd[i] = admin->gtrd[i + 1];
                         i++;
                     }
+                    pthread_mutex_unlock(admin->mutex);
+                    break;
                 }
+            }
+            if (!exists)
+            {
+                print("Não há jogadores com o nome indicado\n", STDOUT_FILENO);
+            }
+            else
+            {
             }
         }
         else if (strcmp(input, "EXIT") != 0)
@@ -437,4 +430,49 @@ void *admin_thread(void *arg)
 
     } while (strcmp(input, "EXIT") != 0);
     pthread_exit(admin->retval);
+}
+
+void *game_clt_thread(void *arg)
+{
+    CltMsgTrd *clt_msg = (CltMsgTrd *)arg;
+    ComMsg msg;
+    memset(&msg, 0, sizeof msg);
+    msg.log_state = PLAYING;
+
+    printf(" %d ", msg.player_pid);
+    fflush(stdout);
+
+    while (clt_msg->keep_alive == 1)
+    {
+        read(clt_msg->server->srv_fifo_fd, &msg, sizeof msg);
+
+        for (int i = 0; i < clt_msg->server->player_count; i++)
+        {
+            if (msg.player_pid == clt_msg->pli[i].player_pid)
+            {
+                if (strcmp(msg.msg, "#QUIT") == 0)
+                {
+                    msg.log_state = QUITED;
+                    kill(clt_msg->pli[i].game_pid, SIGUSR1);
+                    
+                    //fechar descritores
+                    
+                    write(clt_msg->pli[i].clt_fifo_fd, &msg, sizeof msg);
+                    pthread_mutex_lock(clt_msg->mutex);
+                    clt_msg->server->player_count--;
+                    while (i++ < clt_msg->server->player_count)
+                    {
+                        clt_msg->pli[i] = clt_msg->pli[i + 1];
+                        clt_msg->gtrd[i] = clt_msg->gtrd[i + 1];
+                    }
+                    pthread_mutex_unlock(clt_msg->mutex);
+                    break;
+                }
+
+                write(clt_msg->pli[i].fd_pipe_write[1], &msg.msg, strlen(msg.msg) + 1);
+                break;
+            }
+        }
+    }
+    pthread_exit(NULL);
 }

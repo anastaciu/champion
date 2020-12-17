@@ -63,7 +63,7 @@ typedef struct
     pthread_t tid;   // id da thread
     void *retval;    // exit status da thread
     PlayerInfo *pli; // info do jogador a passar à thread
-    
+    pthread_mutex_t *mutex;
 } GameThrd;
 
 // estrutura da thread de verificação de dados e setup de login no servidor
@@ -75,6 +75,7 @@ typedef struct
     PlayerInfo *logged_users; // array de clientes ligados
     ServerSettings *server;
     GameThrd *gt;
+    pthread_mutex_t *mutex;
 } LoginThr;
 
 typedef struct
@@ -83,7 +84,7 @@ typedef struct
     void *retval;  // exit status da thread
     time_t *wait_time;
     pthread_t log_tid;
-} Timer;
+} TimerTrd;
 
 typedef struct
 {
@@ -92,4 +93,17 @@ typedef struct
     GameThrd *gtrd;
     void *retval;  // exit status da thread
     pthread_t tid; // id da thread
+    pthread_mutex_t *mutex;
 } AdminThread;
+
+
+typedef struct 
+{
+    PlayerInfo *pli;
+    GameThrd *gtrd;
+    ServerSettings *server;
+    int keep_alive;
+    pthread_t tid;
+    void *retval;
+    pthread_mutex_t *mutex;
+} CltMsgTrd;

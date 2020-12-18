@@ -171,8 +171,11 @@ void *game_thread(void *arg)
     }
     else
     {
+        int exit_status;
         close(g_trd->pli->fd_pipe_write[0]);
         close(g_trd->pli->fd_pipe_read[1]);
+        strcpy(msg.game_name, g_trd->pli->game_name);
+        msg.log_state = PLAYING;
 
         while (g_trd->keep_alive == 1)
         {
@@ -183,16 +186,15 @@ void *game_thread(void *arg)
             {
                 g_trd->keep_alive = 0;
             }
-            msg.log_state = PLAYING;
-            strcpy(msg.game_name, g_trd->pli->game_name);
             nbytes = write(g_trd->pli->clt_fifo_fd, &msg, sizeof msg);
-
-            //...
         }
-
-        wait(&g_trd->pli->points);
-        printf("%d", g_trd->pli->points);
-        fflush(stdout);
+        wait(&exit_status);
+        if (WIFEXITED(exit_status))
+        {
+            g_trd->pli->points = WEXITSTATUS(exit_status);
+            printf("\nJogo do jogador %s terminou com %d pontos\n>", g_trd->pli->name, g_trd->pli->points);
+            fflush(stdout);
+        }
     }
 
     return NULL;
@@ -444,10 +446,6 @@ void *game_clt_thread(void *arg)
     ComMsg msg;
     memset(&msg, 0, sizeof msg);
     msg.log_state = PLAYING;
-
-    printf(" %d ", msg.player_pid);
-    fflush(stdout);
-
     while (clt_msg->keep_alive == 1)
     {
         read(clt_msg->server->srv_fifo_fd, &msg, sizeof msg);

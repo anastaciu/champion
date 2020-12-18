@@ -6,7 +6,6 @@
 #include <fcntl.h>
 #include <pthread.h>
 #include <string.h>
-#include <signal.h>
 
 #include "../utils_interface.h"
 #include "user_interface.h"
@@ -63,9 +62,6 @@ int main()
     get_user_input(player.name, STDIN_FILENO, MAX_LEN_NAME);
 
     log_res = write(srv_fifo_fd, &player, sizeof player);
-
-    printf(" %d ", log_res);
-    fflush(stdout);
 
     log_res = read(clt_fifo_fd, &state, sizeof state);
 

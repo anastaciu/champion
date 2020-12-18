@@ -445,6 +445,7 @@ void *game_clt_thread(void *arg)
     CltMsgTrd *clt_msg = (CltMsgTrd *)arg;
     ComMsg msg;
     memset(&msg, 0, sizeof msg);
+    
     msg.log_state = PLAYING;
     while (clt_msg->keep_alive == 1)
     {

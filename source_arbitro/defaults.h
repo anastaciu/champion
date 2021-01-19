@@ -76,6 +76,7 @@ typedef struct
     ServerSettings *server;
     GameThrd *gt;
     pthread_mutex_t *mutex;
+    int *admin_keep_alive;
 } LoginThr;
 
 typedef struct
@@ -84,6 +85,7 @@ typedef struct
     void *retval;  // exit status da thread
     time_t *wait_time;
     pthread_t log_tid;
+    int *log_keep_alive;
 } TimerTrd;
 
 typedef struct
@@ -94,6 +96,7 @@ typedef struct
     void *retval;  // exit status da thread
     pthread_t tid; // id da thread
     pthread_mutex_t *mutex;
+    int keep_alive;
 } AdminThread;
 
 typedef struct
@@ -105,4 +108,5 @@ typedef struct
     pthread_t tid;
     void *retval;
     pthread_mutex_t *mutex;
+    
 } CltMsgTrd;

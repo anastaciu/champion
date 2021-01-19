@@ -158,6 +158,8 @@ int main(int argc, char **argv)
 
     timer.wait_time = &server.wait_time;
     timer.log_tid = login.tid;
+    timer.log_keep_alive = &login.keep_alive;
+
 
     if (pthread_create(&timer.tid, NULL, time_handler, (void *)&timer))
     {
@@ -174,6 +176,7 @@ int main(int argc, char **argv)
     admin.gtrd = gtrd;
     admin.server = &server;
     admin.mutex = &mutex;
+    admin.keep_alive = 1;
 
     if (pthread_create(&admin.tid, NULL, admin_thread, (void *)&admin))
     {
@@ -194,6 +197,7 @@ int main(int argc, char **argv)
 
     if (server.player_count < 2)
     {
+        admin.keep_alive = 0;
         print("\nServidor encerrado, menos de 2 jogadores inscritos!\n", STDOUT_FILENO);
         if (gde == ENV_ERROR)
         {

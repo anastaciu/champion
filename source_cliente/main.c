@@ -117,6 +117,7 @@ int main()
     msg_trd.plr_fifo = player.player_fifo;
     msg_trd.keep_alive = 1;
     msg_trd.msg = &msg;
+    msg_trd.cli_msg_keep_alive = &cli_trd.keep_alive;
     msg_trd.com_tid = cli_trd.tid;
 
     //Criação da thread de login

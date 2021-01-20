@@ -485,11 +485,13 @@ void *game_clt_thread(void *arg)
     ComMsg msg;
     memset(&msg, 0, sizeof msg);
     struct sigaction act;
+
     memset(&act, 0, sizeof act);
     act.sa_flags = 0;
     sigemptyset(&act.sa_mask);
     act.sa_handler = sig_exit;
     sigaction(SIGUSR1, &act, NULL);
+    
     msg.log_state = PLAYING;
     while (clt_msg->keep_alive == 1)
     {

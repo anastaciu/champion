@@ -28,7 +28,7 @@ void *com_thread(void *arg)
                 close(msg_trd->srv_fifo_fd);
                 remove(msg_trd->plr_fifo);
                 print("\nFoi removido pelo árbitro!\n", STDOUT_FILENO);
-                pthread_kill(msg_trd->com_tid, SIGUSR1);
+                pthread_kill(msg_trd->com_tid, SIGUSR2);
                 pthread_exit(NULL);
             }
             else if (msg_trd->msg->log_state == EXITED)
@@ -37,7 +37,7 @@ void *com_thread(void *arg)
                 close(msg_trd->srv_fifo_fd);
                 remove(msg_trd->plr_fifo);
                 print("\nO servidor foi encerrado!\n", STDOUT_FILENO);
-                pthread_kill(msg_trd->com_tid, SIGUSR1);
+                pthread_kill(msg_trd->com_tid, SIGUSR2);
                 pthread_exit(NULL);
             }
             else if (msg_trd->msg->log_state == QUITED)
@@ -46,27 +46,12 @@ void *com_thread(void *arg)
                 close(msg_trd->srv_fifo_fd);
                 remove(msg_trd->plr_fifo);
                 print("\nSaiu do jogo!\n", STDOUT_FILENO);
-                pthread_kill(msg_trd->com_tid, SIGUSR1);
+                pthread_kill(msg_trd->com_tid, SIGUSR2);
                 pthread_exit(NULL);
-            }
-            else if (msg_trd->msg->log_state == STARTED)
-            {
-                //abre fifo do servidor para escrita
-                msg_trd->srv_fifo_fd = open(SERVER_LOG_FIFO, O_WRONLY);
-
-                if (msg_trd->srv_fifo_fd == -1)
-                {
-                    perror(ERROR_SERVER_FIFO);
-                    remove(msg_trd->plr_fifo);
-                    msg_trd->keep_alive = 0;
-                }
-                print(msg_trd->msg->msg, STDOUT_FILENO);
-                //fim
-            }
+            }       
             else
             {
-                print(msg_trd->msg->msg, STDOUT_FILENO);
-                
+                print(msg_trd->msg->msg, STDOUT_FILENO);   
             }
         }
         else
@@ -80,7 +65,7 @@ void *com_thread(void *arg)
 
 void sig_handler(int sig)
 {
-    if (sig == SIGUSR1)
+    if (sig == SIGUSR2)
     {
         pthread_exit(NULL);
     }
@@ -96,7 +81,7 @@ void *cli_thread(void *arg)
     memset(&msg, 0, sizeof msg);
     msg.player_pid = cli_trd->clt_pid;
 
-    signal(SIGUSR1, sig_handler);
+    signal(SIGUSR2, sig_handler);
 
     //ciclo de leitura de comandos
     while (cli_trd->keep_alive == 1)

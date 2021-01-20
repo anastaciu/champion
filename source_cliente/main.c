@@ -70,9 +70,7 @@ int main()
         switch (state)
         {
         case SUCCESS:
-            print("Login efectuado com sucesso...\nAguarde o início do jogo...", STDOUT_FILENO);
-            close(srv_fifo_fd);
-
+            print("Login efectuado com sucesso...\nAguarde o início do jogo...", STDOUT_FILENO);           
             break;
         case LOGGED:
             print("Já existe um cliente com o mesmo nome...\n", STDERR_FILENO);

@@ -491,11 +491,9 @@ void *game_clt_thread(void *arg)
     act.sa_handler = sig_exit;
     sigaction(SIGUSR1, &act, NULL);
     msg.log_state = PLAYING;
-    int nbytes = 0;
     while (clt_msg->keep_alive == 1)
     {
-        nbytes = read(clt_msg->server->srv_fifo_fd, &msg, sizeof msg);
-       
+        read(clt_msg->server->srv_fifo_fd, &msg, sizeof msg);
 
         if (clt_msg->keep_alive == 1)
         {

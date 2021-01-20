@@ -181,20 +181,20 @@ void *game_thread(void *arg)
         strcpy(msg.game_name, g_trd->pli->game_name);
         msg.log_state = PLAYING;
 
-        while (g_trd->keep_alive == 1)
-        //while ((nbytes = read(g_trd->pli->fd_pipe_read[0], &msg.msg, sizeof msg.msg)))
+        //while (g_trd->keep_alive == 1)
+        while ((nbytes = read(g_trd->pli->fd_pipe_read[0], &msg.msg, sizeof msg.msg)))
         {
-            nbytes = read(g_trd->pli->fd_pipe_read[0], &msg.msg, sizeof msg.msg);
+            //nbytes = read(g_trd->pli->fd_pipe_read[0], &msg.msg, sizeof msg.msg);
             msg.msg[nbytes] = '\0';
 
-                         if (nbytes <= 0)
-            {
-                g_trd->keep_alive = 0;
-            }
-            if (g_trd->keep_alive != 0)
-            { 
+            //if (nbytes <= 0)
+            //{
+                //g_trd->keep_alive = 0;
+            //}
+            //if (g_trd->keep_alive != 0)
+            //{ 
             nbytes = write(g_trd->pli->clt_fifo_fd, &msg, sizeof msg);
-            }
+            //}
         }
         wait(&exit_status);
         if (WIFEXITED(exit_status))

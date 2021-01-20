@@ -35,6 +35,7 @@ int main(int argc, char **argv)
     ComMsg msg;
     CltMsgTrd clt_msg;
     pthread_mutex_t mutex;
+    pthread_mutex_t timer_mutex;
 
     server.player_count = 0; // reset do número de jogadores ligados ao servidor
 
@@ -109,7 +110,7 @@ int main(int argc, char **argv)
     if (server.n_players == ENV_ERROR)
     {
         server.n_players = MAXPLAYER_DEFAULT;
-        sprintf(output, MAXPLAYER_ERROR_OUT, MAXPLAYER_DEFAULT);
+        sprintf(output, MAXPLAYER_ERROR_OUT, MAXPLAYER_NAME, MAXPLAYER_DEFAULT);
         print(output, STDOUT_FILENO);
     }
     else
@@ -121,7 +122,8 @@ int main(int argc, char **argv)
 
     PlayerInfo clients[server.n_players]; //array de clientes definido com base no número máximo de jogadores
     GameThrd gtrd[server.n_players];      // array de threads para o jogo
-    memset(clients, 0, sizeof clients);
+    //memset(clients, 0, sizeof clients);
+    //memset(gtrd, 0, sizeof gtrd);
 
     //abre fifo do servidor para leitura e escrita
     if ((server.srv_fifo_fd = open(SERVER_LOG_FIFO, O_RDWR)) == -1)
@@ -133,6 +135,7 @@ int main(int argc, char **argv)
     //fim
 
     pthread_mutex_init(&mutex, NULL);
+    pthread_mutex_init(&timer_mutex, NULL);
 
     //Setup de dados para a thread de login
     login.keep_alive = 1;
@@ -141,6 +144,8 @@ int main(int argc, char **argv)
     server.player_count = 0;
     login.gt = gtrd;
     login.mutex = &mutex;
+    login.timer_mutex = &timer_mutex;
+    login.pause = true;
     //fim
 
     //Criação da thread de login
@@ -159,7 +164,8 @@ int main(int argc, char **argv)
     timer.wait_time = &server.wait_time;
     timer.log_tid = login.tid;
     timer.log_keep_alive = &login.keep_alive;
-
+    timer.timer_mutex = &timer_mutex;
+    timer.pause = &login.pause;
 
     if (pthread_create(&timer.tid, NULL, time_handler, (void *)&timer))
     {
@@ -171,12 +177,15 @@ int main(int argc, char **argv)
         }
         exit(EXIT_FAILURE);
     }
+    //memset(&admin, 0, sizeof admin);
 
     admin.clients = clients;
     admin.gtrd = gtrd;
     admin.server = &server;
     admin.mutex = &mutex;
     admin.keep_alive = 1;
+    admin.timer_trd = &timer;
+    admin.login_trd = &login;
 
     if (pthread_create(&admin.tid, NULL, admin_thread, (void *)&admin))
     {
@@ -198,7 +207,7 @@ int main(int argc, char **argv)
     if (server.player_count < 2)
     {
         admin.keep_alive = 0;
-        print("\nServidor encerrado, menos de 2 jogadores inscritos!\n", STDOUT_FILENO);
+        print("\nServidor encerrado!\n", STDOUT_FILENO);
         if (gde == ENV_ERROR)
         {
             free(server.game_dir);
@@ -247,20 +256,25 @@ int main(int argc, char **argv)
 
     pthread_join(admin.tid, &admin.retval);
 
+
     for (int i = 0; i < server.player_count; i++)
     {
         if (clients[i].game_pid != 0)
         {
             kill(clients[i].game_pid, SIGUSR1);
         }
+
         pthread_kill(gtrd[i].tid, SIGUSR1);
         msg.log_state = EXITED;
         write(clients[i].clt_fifo_fd, &msg, sizeof msg);
         close(clients[i].clt_fifo_fd);
         pthread_join(gtrd[i].tid, &gtrd[i].retval);
     }
-
+    clt_msg.keep_alive = 0;
+    pthread_kill(clt_msg.tid, SIGUSR1);
+    pthread_join(clt_msg.tid, &clt_msg.retval);
     pthread_mutex_destroy(&mutex);
+    pthread_mutex_destroy(&timer_mutex);
 
     //elimina memória reservada para game_dir caso ela tenha sido necessária
     if (gde == ENV_ERROR)

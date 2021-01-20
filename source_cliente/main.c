@@ -86,7 +86,6 @@ int main()
             remove(player.player_fifo);
             exit(EXIT_FAILURE);
             break;
-
         default:
             break;
         }

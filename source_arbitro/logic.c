@@ -121,7 +121,10 @@ GameDirParsing get_game_dir(char **game_dir)
     return ENV_SUCCESS;
 }
 
-void sig_exit(int s) {}
+void sig_exit(int s)
+{
+    (void)s;
+}
 
 void *game_thread(void *arg)
 {
@@ -130,6 +133,7 @@ void *game_thread(void *arg)
     memset(&msg, 0, sizeof msg);
 
     struct sigaction act;
+    sigemptyset(&act.sa_mask);
     act.sa_flags = 0;
     act.sa_handler = sig_exit;
     sigaction(SIGUSR1, &act, NULL);
@@ -178,23 +182,28 @@ void *game_thread(void *arg)
         msg.log_state = PLAYING;
 
         while (g_trd->keep_alive == 1)
+        //while ((nbytes = read(g_trd->pli->fd_pipe_read[0], &msg.msg, sizeof msg.msg)))
         {
             nbytes = read(g_trd->pli->fd_pipe_read[0], &msg.msg, sizeof msg.msg);
             msg.msg[nbytes] = '\0';
 
-            if (nbytes <= 0)
+                         if (nbytes <= 0)
             {
                 g_trd->keep_alive = 0;
             }
+            if (g_trd->keep_alive != 0)
+            { 
             nbytes = write(g_trd->pli->clt_fifo_fd, &msg, sizeof msg);
+            }
         }
         wait(&exit_status);
         if (WIFEXITED(exit_status))
         {
             g_trd->pli->points = WEXITSTATUS(exit_status);
-            printf("\nJogo do jogador %s terminou com %d pontos\n>", g_trd->pli->name, g_trd->pli->points);
+            printf("\nO jogador %s terminou com %d pontos\n", g_trd->pli->name, g_trd->pli->points);
             fflush(stdout);
         }
+        fflush(stdout);
     }
 
     return NULL;
@@ -203,10 +212,20 @@ void *game_thread(void *arg)
 void *time_handler(void *arg)
 {
     TimerTrd *t = (TimerTrd *)arg;
+
+    while (*t->pause)
+    {
+        sleep(1);
+    }
+    if (*t->wait_time)
+    {
+        printf("\nO jogo terá início dentro de %ld segundos\n>", *t->wait_time);
+    }
+    fflush(stdout);
     sleep(*t->wait_time);
     *t->log_keep_alive = 0;
     pthread_kill(t->log_tid, SIGUSR1);
-    pthread_exit(t->retval);
+    return NULL;
 }
 
 void *login_thread(void *arg)
@@ -217,10 +236,9 @@ void *login_thread(void *arg)
     LogState state;
     int clt_fifo_fd;
     int game_index;
-
     srand((unsigned int)time(NULL));
-
     struct sigaction act;
+    sigemptyset(&act.sa_mask);
     act.sa_flags = 0;
     act.sa_handler = sig_exit;
     sigaction(SIGUSR1, &act, NULL);
@@ -271,12 +289,20 @@ void *login_thread(void *arg)
             if (state != LOGGED && state != MAX_USERS)
             {
                 l_thrd->logged_users[l_thrd->server->player_count - 1].clt_fifo_fd = clt_fifo_fd;
+
+                if (l_thrd->server->player_count > 1)
+                {
+                    pthread_mutex_lock(l_thrd->timer_mutex);
+                    l_thrd->pause = false;
+                    pthread_mutex_unlock(l_thrd->timer_mutex);
+                }
             }
             if (clt_fifo_fd != -1)
             {
                 strncpy(l_thrd->logged_users[l_thrd->server->player_count - 1].game_name, l_thrd->server->game_list[game_index], sizeof l_thrd->logged_users[l_thrd->server->player_count - 1].game_name);
 
                 log_res = write(clt_fifo_fd, &state, sizeof state);
+
                 if (log_res != sizeof state)
                 {
                     fprintf(stderr, "Erro na resposta ao cliente\n");
@@ -328,126 +354,129 @@ char **list_games(const char *path, int *n_games)
 
 void *admin_thread(void *arg)
 {
-    char input[INPUT_SIZE]; // char array para inputs
+    char input[INPUT_SIZE] = "x"; // char array para inputs
     AdminThread *admin = (AdminThread *)arg;
     ComMsg msg;
-
     struct sigaction act;
+    memset(&act, 0, sizeof act);
     act.sa_flags = 0;
+    sigemptyset(&act.sa_mask);
     act.sa_handler = sig_exit;
-
+    sigaction(SIGUSR1, &act, NULL);
     memset(&msg, 0, sizeof msg);
-    
+
     //Rotina de leitura execução de comandos do teclado
-     while (strcmp(input, "EXIT") != 0 && admin->keep_alive == 1)
+    do
     {
-        sigaction(SIGUSR1, &act, NULL);
         print(">", STDOUT_FILENO);
-        
-        if (admin->keep_alive == 1)
+
+        get_user_input(input, STDIN_FILENO, sizeof input);
+
+        if (strcmp(input, "PLAYERS") == 0)
         {
-            if(admin->keep_alive == 1){
-            get_user_input(input, STDIN_FILENO, sizeof input);
-            }
-            else{
-                printf("Prima qualquer tecla para sair...");
-                fflush(stdout);
-                getchar();
-            }
-            if (strcmp(input, "PLAYERS") == 0)
+            if (admin->server->player_count > 0)
             {
-                if (admin->server->player_count > 1)
+                print("Lista de jogadores:\n", STDOUT_FILENO);
+                for (int i = 0; i < admin->server->player_count; i++)
                 {
-                    fflush(stdout);
-                    print("Lista de jogadores:\n", STDOUT_FILENO);
-
-                    for (int i = 0; i < admin->server->player_count; i++)
-                    {
-                        print("Nome: ", STDOUT_FILENO);
-                        print(admin->clients[i].name, STDOUT_FILENO);
-                        print(", jogo: ", STDOUT_FILENO);
-                        print(admin->clients[i].game_name, STDOUT_FILENO);
-                        print("\n", STDOUT_FILENO);
-                    }
-                }
-                else
-                {
-                    print("Não há jogadores\n", STDOUT_FILENO);
+                    print("Nome: ", STDOUT_FILENO);
+                    print(admin->clients[i].name, STDOUT_FILENO);
+                    print(", jogo: ", STDOUT_FILENO);
+                    print(admin->clients[i].game_name, STDOUT_FILENO);
+                    print("\n", STDOUT_FILENO);
                 }
             }
-
-            else if (strcmp(input, "GAMES") == 0)
+            else
             {
-                if (admin->server->n_games > 0)
-                {
-                    print("Lista de jogos:\n", STDOUT_FILENO);
-                    for (int i = 0; i < admin->server->n_games; i++)
-                    {
-                        print(admin->server->game_list[i], STDOUT_FILENO);
-                        print("\n", STDOUT_FILENO);
-                    }
-                }
-                else
-                {
-                    print("Não foram carregados jogos", STDOUT_FILENO); //não deve acontecer, sem jogos o servidor não é lançado
-                }
-            }
-            else if (input[0] == 'K')
-            {
-                int i;
-                int exists = 0;
-
-                for (i = 0; i < admin->server->player_count; i++)
-                {
-                    if (strcmp(&input[1], admin->clients[i].name) == 0)
-                    {
-                        exists = 1;
-                        print("Jogador ", STDOUT_FILENO);
-                        print(admin->clients[i].name, STDOUT_FILENO);
-                        print(" removido\n", STDOUT_FILENO);
-                        msg.log_state = REMOVED;
-                        int w = write(admin->clients[i].clt_fifo_fd, &msg, sizeof msg);
-                        if (w != sizeof msg)
-                        {
-                            print("Erro de comunicação com o cliente!\n", STDERR_FILENO);
-                        }
-                        close(admin->clients[i].clt_fifo_fd);
-                        close(admin->clients[i].fd_pipe_read[0]);
-                        close(admin->clients[i].fd_pipe_write[1]);
-                        kill(admin->clients[i].game_pid, SIGUSR1);
-                        pthread_mutex_lock(admin->mutex);
-                        admin->server->player_count--;
-                        while (i < admin->server->player_count)
-                        {
-                            admin->clients[i] = admin->clients[i + 1];
-                            admin->gtrd[i] = admin->gtrd[i + 1];
-                            i++;
-                        }
-                        pthread_mutex_unlock(admin->mutex);
-                        if (admin->server->player_count < 2)
-                        {
-                            print("\nNão há jogadores suficientes para continuar...\n", STDOUT_FILENO);
-                            pthread_exit(NULL);
-                        }
-                        break;
-                    }
-                }
-                if (!exists)
-                {
-                    print("Não há jogadores com o nome indicado\n", STDOUT_FILENO);
-                }
-                else
-                {
-                }
-            }
-            else if (strcmp(input, "EXIT") != 0)
-            {
-                print("Comando não reconhecido!\n", STDOUT_FILENO);
+                print("Não há jogadores\n", STDOUT_FILENO);
             }
         }
 
-    };
-    pthread_exit(admin->retval);
+        else if (strcmp(input, "GAMES") == 0)
+        {
+            if (admin->server->n_games > 0)
+            {
+                print("Lista de jogos:\n", STDOUT_FILENO);
+                for (int i = 0; i < admin->server->n_games; i++)
+                {
+                    print(admin->server->game_list[i], STDOUT_FILENO);
+                    print("\n", STDOUT_FILENO);
+                }
+            }
+            else
+            {
+                print("Não foram carregados jogos", STDOUT_FILENO); //não deve acontecer, sem jogos o servidor não é lançado
+            }
+        }
+        else if (input[0] == 'K')
+        {
+            int i;
+            int exists = 0;
+
+            for (i = 0; i < admin->server->player_count; i++)
+            {
+                if (strcmp(&input[1], admin->clients[i].name) == 0)
+                {
+                    exists = 1;
+                    print("Jogador ", STDOUT_FILENO);
+                    print(admin->clients[i].name, STDOUT_FILENO);
+                    print(" removido\n", STDOUT_FILENO);
+                    msg.log_state = REMOVED;
+                    int w = write(admin->clients[i].clt_fifo_fd, &msg, sizeof msg);
+                    if (w != sizeof msg)
+                    {
+                        print("Erro de comunicação com o cliente!\n", STDERR_FILENO);
+                    }
+                    close(admin->clients[i].clt_fifo_fd);
+                    close(admin->clients[i].fd_pipe_read[0]);
+                    close(admin->clients[i].fd_pipe_write[1]);
+                    kill(admin->clients[i].game_pid, SIGUSR1);
+                    pthread_join(admin->gtrd[i].tid, &admin->gtrd[i].retval);
+
+                    pthread_mutex_lock(admin->mutex);
+                    admin->server->player_count--;
+                    while (i < admin->server->player_count)
+                    {
+                        admin->clients[i] = admin->clients[i + 1];
+                        admin->gtrd[i] = admin->gtrd[i + 1];
+                        i++;
+                    }
+                    pthread_mutex_unlock(admin->mutex);
+                    if (admin->server->player_count < 2)
+                    {
+                        print("\nNão há jogadores suficientes para continuar...\n", STDOUT_FILENO);
+                        pthread_exit(NULL);
+                    }
+                    break;
+                }
+            }
+            if (!exists)
+            {
+                print("Não há jogadores com o nome indicado\n", STDOUT_FILENO);
+            }
+        }
+        else if (strcmp(input, "END") == 0)
+        {
+            print("Implementar end!\n", STDOUT_FILENO);
+        }
+        else if (input[0] == 'R')
+        {
+            print("Implementar k!\n", STDOUT_FILENO);
+        }
+        else if (input[0] == 'S')
+        {
+            print("Implementar s!\n", STDOUT_FILENO);
+        }
+        else if (strcmp(input, "EXIT") != 0 && admin->keep_alive == 1)
+        {
+            print("Comando não reconhecido!\n", STDOUT_FILENO);
+        }
+
+    } while (strcmp(input, "EXIT") != 0 && admin->keep_alive == 1);
+    admin->login_trd->keep_alive = 0;
+    *admin->timer_trd->wait_time = 0;
+    *admin->timer_trd->pause = 0;
+    pthread_exit(NULL);
 }
 
 void *game_clt_thread(void *arg)
@@ -455,39 +484,51 @@ void *game_clt_thread(void *arg)
     CltMsgTrd *clt_msg = (CltMsgTrd *)arg;
     ComMsg msg;
     memset(&msg, 0, sizeof msg);
-
+    struct sigaction act;
+    memset(&act, 0, sizeof act);
+    act.sa_flags = 0;
+    sigemptyset(&act.sa_mask);
+    act.sa_handler = sig_exit;
+    sigaction(SIGUSR1, &act, NULL);
     msg.log_state = PLAYING;
+    int nbytes = 0;
     while (clt_msg->keep_alive == 1)
     {
-        read(clt_msg->server->srv_fifo_fd, &msg, sizeof msg);
+        nbytes = read(clt_msg->server->srv_fifo_fd, &msg, sizeof msg);
+       
 
-        for (int i = 0; i < clt_msg->server->player_count; i++)
+        if (clt_msg->keep_alive == 1)
         {
-            if (msg.player_pid == clt_msg->pli[i].player_pid)
+            for (int i = 0; i < clt_msg->server->player_count; i++)
             {
-                if (strcmp(msg.msg, "#QUIT") == 0)
+                if (msg.player_pid == clt_msg->pli[i].player_pid)
                 {
-                    msg.log_state = QUITED;
-                    kill(clt_msg->pli[i].game_pid, SIGUSR1);
-                    write(clt_msg->pli[i].clt_fifo_fd, &msg, sizeof msg);
-                    close(clt_msg->pli[i].clt_fifo_fd);
-                    close(clt_msg->pli[i].fd_pipe_read[0]);
-                    close(clt_msg->pli[i].fd_pipe_write[1]);
-                    pthread_mutex_lock(clt_msg->mutex);
-                    clt_msg->server->player_count--;
-                    while (i++ < clt_msg->server->player_count)
+
+                    if (strcmp(msg.msg, "#QUIT") == 0)
                     {
-                        clt_msg->pli[i] = clt_msg->pli[i + 1];
-                        clt_msg->gtrd[i] = clt_msg->gtrd[i + 1];
+                        msg.log_state = QUITED;
+                        kill(clt_msg->pli[i].game_pid, SIGUSR1);
+                        write(clt_msg->pli[i].clt_fifo_fd, &msg, sizeof msg);
+                        close(clt_msg->pli[i].clt_fifo_fd);
+                        close(clt_msg->pli[i].fd_pipe_read[0]);
+                        close(clt_msg->pli[i].fd_pipe_write[1]);
+                        pthread_mutex_lock(clt_msg->mutex);
+                        clt_msg->server->player_count--;
+                        while (i++ < clt_msg->server->player_count)
+                        {
+                            clt_msg->pli[i] = clt_msg->pli[i + 1];
+                            clt_msg->gtrd[i] = clt_msg->gtrd[i + 1];
+                        }
+                        pthread_mutex_unlock(clt_msg->mutex);
+                        break;
                     }
-                    pthread_mutex_unlock(clt_msg->mutex);
+
+                    write(clt_msg->pli[i].fd_pipe_write[1], &msg.msg, strlen(msg.msg) + 1);
+
                     break;
                 }
-
-                write(clt_msg->pli[i].fd_pipe_write[1], &msg.msg, strlen(msg.msg) + 1);
-                break;
             }
         }
     }
-    pthread_exit(NULL);
+    return NULL;
 }

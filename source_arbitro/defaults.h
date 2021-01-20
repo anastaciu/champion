@@ -1,5 +1,6 @@
 
 #include "../global.h" // MAX_LEN_NAME
+#include <stdbool.h>
 
 #define MAXPLAYER_DEFAULT 30        // número máximo de jogadores
 #define MAXPLAYER_NAME "MAXPLAYERS" // nome da variável ambiente
@@ -77,6 +78,9 @@ typedef struct
     GameThrd *gt;
     pthread_mutex_t *mutex;
     int *admin_keep_alive;
+    pthread_cond_t *timer_cond;
+    pthread_mutex_t *timer_mutex;
+    bool pause;
 } LoginThr;
 
 typedef struct
@@ -86,6 +90,9 @@ typedef struct
     time_t *wait_time;
     pthread_t log_tid;
     int *log_keep_alive;
+    pthread_cond_t *timer_cond;
+    pthread_mutex_t *timer_mutex;
+    bool *pause;
 } TimerTrd;
 
 typedef struct
@@ -97,6 +104,8 @@ typedef struct
     pthread_t tid; // id da thread
     pthread_mutex_t *mutex;
     int keep_alive;
+    TimerTrd *timer_trd;
+    LoginThr *login_trd;
 } AdminThread;
 
 typedef struct

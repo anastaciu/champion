@@ -7,7 +7,7 @@
 #define ERROR_WAIT_TIME_OUT "Tempo de espera incorreto ou ausente, valor mínimo: %d, valor por defeito: %d\n"
 #define WAIT_TIME_OUT "Tempo de espera: %ld segundos\n"
 #define GAME_DURATION_OUT "Duração de jogo: %ld segundos\n"
-#define MAXPLAYER_ERROR_OUT "MAXPLAYER não encontrado ou inválido, %d é número máximo de jogadores definido por defeito\n"
+#define MAXPLAYER_ERROR_OUT "%s não encontrado ou inválido, %d é número máximo de jogadores definido por defeito\n"
 #define PARSED_MAXPLAYER_OUT "O número máximo de jogadores é '%d'\n"
 #define PARSED_GAMEDIR_OUT "A diretoria dos jogos é '%s'\n"
 #define GAMEDIR_ERROR_OUT "GAMEDIR não encontrado, '%s' é a diretoria definida por defeito\n"

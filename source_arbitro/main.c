@@ -193,6 +193,9 @@ int main(int argc, char **argv)
     timer.log_keep_alive = &login.keep_alive;
     timer.timer_mutex = &timer_mutex;
     timer.pause = &login.pause;
+    timer.clients = clients;
+    timer.server = &server;
+
 
     if (pthread_create(&timer.tid, NULL, time_handler, (void *)&timer))
     {
@@ -264,11 +267,11 @@ int main(int argc, char **argv)
     memset(&msg, 0, sizeof msg);
 
     msg.log_state = STARTED;
-    strcpy(msg.msg, "\nComeçou o jogo...\n\n");
+    strcpy(msg.msg, "\n");
 
     for (int i = 0; i < server.player_count; i++)
     {
-
+        sprintf(msg.msg, "\nComeçou o jogo...\nO seu jogo é %s\n", clients[i].game_name);
         write(clients[i].clt_fifo_fd, &msg, sizeof msg);
         gtrd[i].pli = &clients[i];
         gtrd[i].keep_alive = 1;

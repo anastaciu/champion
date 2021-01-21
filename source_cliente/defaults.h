@@ -11,10 +11,11 @@ typedef struct
     void *retval;       // exit status da thread
     ComMsg *msg;        // estrutura de comunicação entre cliente e servidor
     int clt_fifo_fd;    // descritor do pipe do cliente
-    int srv_fifo_fd;    // descritor do pipe do servidor
+    int *srv_fifo_fd;    // descritor do pipe do servidor
     char *plr_fifo;
     int *cli_msg_keep_alive;
     pthread_t com_tid; 
+    const char* clt_fifo_name;
 } MsgThrd;
 
 typedef struct 
@@ -23,7 +24,7 @@ typedef struct
     void *retval;
     pthread_t tid;
     char *game_name;
-    int srv_fifo_fd;
+    int *srv_fifo_fd;
     int clt_pid;
 } CliThrd;
 

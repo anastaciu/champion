@@ -94,6 +94,8 @@ typedef struct
     pthread_cond_t *timer_cond;
     pthread_mutex_t *timer_mutex;
     bool *pause;
+    PlayerInfo *clients;
+    ServerSettings *server;
 } TimerTrd;
 
 typedef struct

@@ -212,21 +212,28 @@ void *game_thread(void *arg)
 void *time_handler(void *arg)
 {
     TimerTrd *t = (TimerTrd *)arg;
+    ComMsg msg;
+    memset(&msg, 0, sizeof msg);
+    
 
     while (*t->pause)
     {
         sleep(1);
     }
+    sprintf(msg.msg, "\nO compeonato terá início dento de %ld segundos!\n>", *t->wait_time);
     if (*t->wait_time)
     {
-        printf("\nO jogo terá início dentro de %ld segundos\n>", *t->wait_time);
+        print(msg.msg, STDOUT_FILENO);
     }
-    fflush(stdout);
+    for(int i = 0; i < t->server->player_count; i++){
+        write(t->clients[i].clt_fifo_fd, &msg, sizeof msg);
+    }
     sleep(*t->wait_time);
     *t->log_keep_alive = 0;
     pthread_kill(t->log_tid, SIGUSR1);
     return NULL;
 }
+
 
 void *login_thread(void *arg)
 {
@@ -582,7 +589,7 @@ void *game_clt_thread(void *arg)
 {
     CltMsgTrd *clt_msg = (CltMsgTrd *)arg;
     ComMsg msg;
-    memset(&msg, 0, sizeof msg);
+ 
     struct sigaction act;
 
     memset(&act, 0, sizeof act);
@@ -591,7 +598,7 @@ void *game_clt_thread(void *arg)
     act.sa_handler = sig_exit;
     sigaction(SIGUSR1, &act, NULL);
 
-    msg.log_state = PLAYING;
+  
     while (clt_msg->keep_alive == 1)
     {
         memset(&msg, 0, sizeof msg);
@@ -631,6 +638,10 @@ void *game_clt_thread(void *arg)
                             pthread_exit(NULL);
                         }
                         break;
+                    }
+                    else if(clt_msg->admin_thread->login_trd->pause == true){
+                        strcpy(msg.msg, "Aguarde pelo início do jogo!\n");
+                        
                     }
 
                     write(clt_msg->pli[i].fd_pipe_write[1], &msg.msg, strlen(msg.msg) + 1);

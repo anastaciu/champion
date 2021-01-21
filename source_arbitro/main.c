@@ -18,7 +18,8 @@
 
 int main(int argc, char **argv)
 {
-    //Cria FIFO do servidor
+
+    //Cria FIFO de login do servidor
     if (mkfifo(SERVER_LOG_FIFO, 0777) == -1)
     {
         print(PIPE_ERROR, STDERR_FILENO);
@@ -38,6 +39,12 @@ int main(int argc, char **argv)
     pthread_mutex_t timer_mutex;
 
     server.player_count = 0; // reset do número de jogadores ligados ao servidor
+
+    //trata sinal de encerramento do processo em caso de falha ao escrever em pipe
+    if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
+    {
+        perror("signal");
+    }
 
     // rotina de obtenção de argumentos da linha de comandos
     switch (command_line_arguments(&server.wait_time, &server.game_duration, argc, argv))
@@ -126,7 +133,7 @@ int main(int argc, char **argv)
     //memset(gtrd, 0, sizeof gtrd);
 
     //abre fifo do servidor para leitura e escrita
-    if ((server.srv_fifo_fd = open(SERVER_LOG_FIFO, O_RDWR)) == -1)
+    if ((server.srv_log_fifo_fd = open(SERVER_LOG_FIFO, O_RDWR)) == -1)
     {
         fprintf(stderr, "Erro ao abrir FIFO\n");
         remove(SERVER_LOG_FIFO);
@@ -134,7 +141,27 @@ int main(int argc, char **argv)
     }
     //fim
 
+    //Cria FIFO de jogo do servidor
+    if (mkfifo(SERVER_FIFO, 0777) == -1)
+    {
+        print(PIPE_ERROR, STDERR_FILENO);
+        return EXIT_FAILURE;
+    }
+    //fim
+
+    //abre fifo do servidor para leitura e escrita
+    if ((server.srv_fifo_fd = open(SERVER_FIFO, O_RDWR)) == -1)
+    {
+        fprintf(stderr, "Erro ao abrir FIFO\n");
+        remove(SERVER_FIFO);
+        return EXIT_FAILURE;
+    }
+    //fim
+
+    //mutex para dados de clientes
     pthread_mutex_init(&mutex, NULL);
+
+    //mutex de accesso à condição da thread timer
     pthread_mutex_init(&timer_mutex, NULL);
 
     //Setup de dados para a thread de login
@@ -202,6 +229,9 @@ int main(int argc, char **argv)
     pthread_join(login.tid, &login.retval);
     pthread_join(timer.tid, &timer.retval);
 
+    close(server.srv_log_fifo_fd);
+    remove(SERVER_LOG_FIFO);
+
     memset(&msg, 0, sizeof msg);
 
     if (server.player_count < 2)
@@ -223,9 +253,9 @@ int main(int argc, char **argv)
         {
             write(clients[0].clt_fifo_fd, &msg, sizeof msg);
         }
-        
+
         close(server.srv_fifo_fd);
-        remove(SERVER_LOG_FIFO);
+        remove(SERVER_FIFO);
         pthread_kill(admin.tid, SIGUSR1);
         pthread_join(admin.tid, &admin.retval);
         exit(EXIT_SUCCESS);
@@ -245,17 +275,18 @@ int main(int argc, char **argv)
         gtrd[i].mutex = &mutex;
         pthread_create(&gtrd[i].tid, NULL, game_thread, (void *)&gtrd[i]);
     }
+    
 
     clt_msg.keep_alive = 1;
     clt_msg.pli = clients;
     clt_msg.server = &server;
     clt_msg.gtrd = gtrd;
     clt_msg.mutex = &mutex;
+    clt_msg.admin_thread = &admin;
 
-    pthread_create(&clt_msg.tid, NULL, game_clt_thread, (void*) &clt_msg);
+    pthread_create(&clt_msg.tid, NULL, game_clt_thread, (void *)&clt_msg);
 
     pthread_join(admin.tid, &admin.retval);
-
 
     for (int i = 0; i < server.player_count; i++)
     {
@@ -264,9 +295,17 @@ int main(int argc, char **argv)
             kill(clients[i].game_pid, SIGUSR1);
         }
 
-        pthread_kill(gtrd[i].tid, SIGUSR1);
+        kill(gtrd[i].tid, SIGUSR1);
         msg.log_state = EXITED;
-        write(clients[i].clt_fifo_fd, &msg, sizeof msg);
+
+        if (write(clients[i].clt_fifo_fd, &msg, sizeof msg) == -1)
+        {
+            if (errno == EPIPE)
+            {
+                perror("sinal");
+            }
+        }
+
         close(clients[i].clt_fifo_fd);
         pthread_join(gtrd[i].tid, &gtrd[i].retval);
     }
@@ -285,7 +324,7 @@ int main(int argc, char **argv)
 
     //Fecha fifos abertos e elimina FIFO do servidor
     close(server.srv_fifo_fd);
-    remove(SERVER_LOG_FIFO);
+    remove(SERVER_FIFO);
     //fim
 
     //elimina lista de jogos

@@ -39,6 +39,7 @@ typedef struct
     int n_players;        // número máximo de jogadores
     int player_count;     // número de jogadores ligados
     int srv_fifo_fd;      // descritor do pipe do servidor
+    int srv_log_fifo_fd;  // descritor do pipe do servidor para login
     int n_games;          // número de jogos
     char **game_list;     // lista de jogos
 } ServerSettings;
@@ -117,5 +118,5 @@ typedef struct
     pthread_t tid;
     void *retval;
     pthread_mutex_t *mutex;
-    
+    AdminThread *admin_thread;  
 } CltMsgTrd;

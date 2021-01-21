@@ -189,10 +189,10 @@ void *game_thread(void *arg)
 
             //if (nbytes <= 0)
             //{
-                //g_trd->keep_alive = 0;
+            //g_trd->keep_alive = 0;
             //}
             //if (g_trd->keep_alive != 0)
-            //{ 
+            //{
             nbytes = write(g_trd->pli->clt_fifo_fd, &msg, sizeof msg);
             //}
         }
@@ -248,7 +248,7 @@ void *login_thread(void *arg)
     {
         int i;
         state = SUCCESS;
-        log_res = read(l_thrd->server->srv_fifo_fd, &player, sizeof player);
+        log_res = read(l_thrd->server->srv_log_fifo_fd, &player, sizeof player);
         if (l_thrd->keep_alive == 1)
         {
             if (log_res != sizeof player)
@@ -371,111 +371,210 @@ void *admin_thread(void *arg)
         print(">", STDOUT_FILENO);
 
         get_user_input(input, STDIN_FILENO, sizeof input);
-
-        if (strcmp(input, "PLAYERS") == 0)
+        if (admin->keep_alive == 1)
         {
-            if (admin->server->player_count > 0)
+
+            if (strcmp(input, "PLAYERS") == 0)
             {
-                print("Lista de jogadores:\n", STDOUT_FILENO);
-                for (int i = 0; i < admin->server->player_count; i++)
+                if (admin->server->player_count > 0)
                 {
-                    print("Nome: ", STDOUT_FILENO);
-                    print(admin->clients[i].name, STDOUT_FILENO);
-                    print(", jogo: ", STDOUT_FILENO);
-                    print(admin->clients[i].game_name, STDOUT_FILENO);
-                    print("\n", STDOUT_FILENO);
+                    print("Lista de jogadores:\n", STDOUT_FILENO);
+                    for (int i = 0; i < admin->server->player_count; i++)
+                    {
+                        print("Nome: ", STDOUT_FILENO);
+                        print(admin->clients[i].name, STDOUT_FILENO);
+                        print(", jogo: ", STDOUT_FILENO);
+                        print(admin->clients[i].game_name, STDOUT_FILENO);
+                        print("\n", STDOUT_FILENO);
+                    }
                 }
+                else
+                {
+                    print("Não há jogadores\n", STDOUT_FILENO);
+                }
+            }
+
+            else if (strcmp(input, "GAMES") == 0)
+            {
+                if (admin->server->n_games > 0)
+                {
+                    print("Lista de jogos:\n", STDOUT_FILENO);
+                    for (int i = 0; i < admin->server->n_games; i++)
+                    {
+                        print(admin->server->game_list[i], STDOUT_FILENO);
+                        print("\n", STDOUT_FILENO);
+                    }
+                }
+                else
+                {
+                    print("Não foram carregados jogos", STDOUT_FILENO); //não deve acontecer, sem jogos o servidor não é lançado
+                }
+            }
+            else if (input[0] == 'K')
+            {
+                if (*admin->timer_trd->pause == true)
+                {
+                    print("O comando só está disponível no decorrer do campeonato!\n", STDERR_FILENO);
+                }
+                else
+                {
+                    int i, w;
+                    int exists = 0;
+
+                    if (admin->server->wait_time != 0)
+                        for (i = 0; i < admin->server->player_count; i++)
+                        {
+                            if (strcmp(&input[1], admin->clients[i].name) == 0)
+                            {
+                                exists = 1;
+                                print("Jogador ", STDOUT_FILENO);
+                                print(admin->clients[i].name, STDOUT_FILENO);
+                                print(" removido\n", STDOUT_FILENO);
+                                msg.log_state = REMOVED;
+                                if ((w = write(admin->clients[i].clt_fifo_fd, &msg, sizeof msg)) == -1)
+                                {
+                                    perror("Erro de comunicação com o cliente");
+                                }
+                                if (w != sizeof msg)
+                                {
+                                    print("Dados corrompidos!\n", STDERR_FILENO);
+                                }
+                                close(admin->clients[i].clt_fifo_fd);
+                                close(admin->clients[i].fd_pipe_read[0]);
+                                close(admin->clients[i].fd_pipe_write[1]);
+                                kill(admin->clients[i].game_pid, SIGUSR1);
+                                pthread_join(admin->gtrd[i].tid, &admin->gtrd[i].retval);
+
+                                pthread_mutex_lock(admin->mutex);
+                                admin->server->player_count--;
+                                while (i < admin->server->player_count)
+                                {
+                                    admin->clients[i] = admin->clients[i + 1];
+                                    admin->gtrd[i] = admin->gtrd[i + 1];
+                                    i++;
+                                }
+                                pthread_mutex_unlock(admin->mutex);
+                                if (admin->server->player_count < 2)
+                                {
+                                    print("\nNão há jogadores suficientes para continuar...\n", STDOUT_FILENO);
+
+                                    pthread_exit(NULL);
+                                }
+                                break;
+                            }
+                        }
+                    if (!exists)
+                    {
+                        print("Não há jogadores com o nome indicado\n", STDOUT_FILENO);
+                    }
+                }
+            }
+            else if (strcmp(input, "END") == 0)
+            {
+                if (*admin->timer_trd->pause == true)
+                {
+                    print("O comando só está disponível no decorrer do campeonato!\n", STDERR_FILENO);
+                }
+                else
+                {
+                    print("Implementar end!\n", STDOUT_FILENO);
+                }
+            }
+            else if (input[0] == 'S')
+            {
+                if (*admin->timer_trd->pause == true)
+                {
+                    print("O comando só está disponível no decorrer do campeonato!\n", STDERR_FILENO);
+                }
+                else
+                {
+                    int i;
+                    int exists = 0;
+                    for (i = 0; i < admin->server->player_count; i++)
+                    {
+                        if (strcmp(&input[1], admin->clients[i].name) == 0)
+                        {
+                            exists = 1;
+                            print("Jogador ", STDOUT_FILENO);
+                            print(admin->clients[i].name, STDOUT_FILENO);
+                            print(" suspenso\n", STDOUT_FILENO);
+                            msg.log_state = SUSPENDED;
+                            int w;
+                            if ((w = write(admin->clients[i].clt_fifo_fd, &msg, sizeof msg)) == -1)
+                            {
+                                perror("Erro de comunicação com o cliente");
+                            }
+                            if (w != sizeof msg)
+                            {
+                                print("Dados corrompidos!\n", STDERR_FILENO);
+                            }
+                            if (w != sizeof msg)
+                            {
+                                print("Erro de comunicação com o cliente!\n", STDERR_FILENO);
+                            }
+                            break;
+                        }
+                    }
+                    if (!exists)
+                    {
+                        print("Não há jogadores com o nome indicado\n", STDOUT_FILENO);
+                    }
+                }
+            }
+            else if (input[0] == 'R')
+            {
+                if (*admin->timer_trd->pause == true)
+                {
+                    print("O comando só está disponível no decorrer do campeonato!\n", STDERR_FILENO);
+                }
+                else
+                {
+                    int i;
+                    int exists = 0;
+                    for (i = 0; i < admin->server->player_count; i++)
+                    {
+                        if (strcmp(&input[1], admin->clients[i].name) == 0)
+                        {
+                            exists = 1;
+                            print("Jogador ", STDOUT_FILENO);
+                            print(admin->clients[i].name, STDOUT_FILENO);
+                            print(" readmitido\n", STDOUT_FILENO);
+                            msg.log_state = REINSTATED;
+                            int w;
+                            if ((w = write(admin->clients[i].clt_fifo_fd, &msg, sizeof msg)) == -1)
+                            {
+                                perror("Erro de comunicação com o cliente");
+                            }
+                            if (w != sizeof msg)
+                            {
+                                print("Dados corrompidos!\n", STDERR_FILENO);
+                            }
+                            if (w != sizeof msg)
+                            {
+                                print("Erro de comunicação com o cliente!\n", STDERR_FILENO);
+                            }
+                            break;
+                        }
+                    }
+                    if (!exists)
+                    {
+                        print("Não há jogadores com o nome indicado\n", STDOUT_FILENO);
+                    }
+                }
+            }
+            else if (strcmp(input, "EXIT") == 0){
+                admin->keep_alive = 0;
             }
             else
             {
-                print("Não há jogadores\n", STDOUT_FILENO);
+                print("Comando não reconhecido!\n", STDOUT_FILENO);
             }
         }
 
-        else if (strcmp(input, "GAMES") == 0)
-        {
-            if (admin->server->n_games > 0)
-            {
-                print("Lista de jogos:\n", STDOUT_FILENO);
-                for (int i = 0; i < admin->server->n_games; i++)
-                {
-                    print(admin->server->game_list[i], STDOUT_FILENO);
-                    print("\n", STDOUT_FILENO);
-                }
-            }
-            else
-            {
-                print("Não foram carregados jogos", STDOUT_FILENO); //não deve acontecer, sem jogos o servidor não é lançado
-            }
-        }
-        else if (input[0] == 'K')
-        {
-            int i;
-            int exists = 0;
-
-            for (i = 0; i < admin->server->player_count; i++)
-            {
-                if (strcmp(&input[1], admin->clients[i].name) == 0)
-                {
-                    exists = 1;
-                    print("Jogador ", STDOUT_FILENO);
-                    print(admin->clients[i].name, STDOUT_FILENO);
-                    print(" removido\n", STDOUT_FILENO);
-                    msg.log_state = REMOVED;
-                    int w = write(admin->clients[i].clt_fifo_fd, &msg, sizeof msg);
-                    if (w != sizeof msg)
-                    {
-                        print("Erro de comunicação com o cliente!\n", STDERR_FILENO);
-                    }
-                    close(admin->clients[i].clt_fifo_fd);
-                    close(admin->clients[i].fd_pipe_read[0]);
-                    close(admin->clients[i].fd_pipe_write[1]);
-                    kill(admin->clients[i].game_pid, SIGUSR1);
-                    pthread_join(admin->gtrd[i].tid, &admin->gtrd[i].retval);
-
-                    pthread_mutex_lock(admin->mutex);
-                    admin->server->player_count--;
-                    while (i < admin->server->player_count)
-                    {
-                        admin->clients[i] = admin->clients[i + 1];
-                        admin->gtrd[i] = admin->gtrd[i + 1];
-                        i++;
-                    }
-                    pthread_mutex_unlock(admin->mutex);
-                    if (admin->server->player_count < 2)
-                    {
-                        print("\nNão há jogadores suficientes para continuar...\n", STDOUT_FILENO);
-                        pthread_exit(NULL);
-                    }
-                    break;
-                }
-            }
-            if (!exists)
-            {
-                print("Não há jogadores com o nome indicado\n", STDOUT_FILENO);
-            }
-        }
-        else if (strcmp(input, "END") == 0)
-        {
-            print("Implementar end!\n", STDOUT_FILENO);
-        }
-        else if (input[0] == 'R')
-        {
-            print("Implementar k!\n", STDOUT_FILENO);
-        }
-        else if (input[0] == 'S')
-        {
-            print("Implementar s!\n", STDOUT_FILENO);
-        }
-        else if (strcmp(input, "EXIT") != 0 && admin->keep_alive == 1)
-        {
-            print("Comando não reconhecido!\n", STDOUT_FILENO);
-        }
-
-    } while (strcmp(input, "EXIT") != 0 && admin->keep_alive == 1);
+    } while (admin->keep_alive == 1);
     admin->login_trd->keep_alive = 0;
     *admin->timer_trd->wait_time = 0;
-    *admin->timer_trd->pause = 0;
+    *admin->timer_trd->pause = false;
     pthread_exit(NULL);
 }
 
@@ -491,10 +590,11 @@ void *game_clt_thread(void *arg)
     sigemptyset(&act.sa_mask);
     act.sa_handler = sig_exit;
     sigaction(SIGUSR1, &act, NULL);
-    
+
     msg.log_state = PLAYING;
     while (clt_msg->keep_alive == 1)
     {
+        memset(&msg, 0, sizeof msg);
         read(clt_msg->server->srv_fifo_fd, &msg, sizeof msg);
 
         if (clt_msg->keep_alive == 1)
@@ -514,12 +614,22 @@ void *game_clt_thread(void *arg)
                         close(clt_msg->pli[i].fd_pipe_write[1]);
                         pthread_mutex_lock(clt_msg->mutex);
                         clt_msg->server->player_count--;
-                        while (i++ < clt_msg->server->player_count)
+                        pthread_join(clt_msg->gtrd[i].tid, &clt_msg->gtrd[i].retval);
+                        while (i < clt_msg->server->player_count)
                         {
                             clt_msg->pli[i] = clt_msg->pli[i + 1];
                             clt_msg->gtrd[i] = clt_msg->gtrd[i + 1];
+                            i++;
                         }
                         pthread_mutex_unlock(clt_msg->mutex);
+
+                        if (clt_msg->server->player_count < 2)
+                        {
+                            print("Não há jogadores suficientes para continuar o jogo!\n", STDERR_FILENO);
+                            clt_msg->admin_thread->keep_alive = 0;
+                            pthread_kill(clt_msg->admin_thread->tid, SIGUSR1);
+                            pthread_exit(NULL);
+                        }
                         break;
                     }
 

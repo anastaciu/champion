@@ -1,11 +1,16 @@
 
 #include <sys/types.h> // tipo pid_t
 
-#define MAX_LEN_NAME 128 // tamanho máximo de nomes e nomes de pipes
+#define MAX_LEN_NAME 128 // tamanho máximo de nome de cliente
 #define OUTPUT_SIZE 2048 // tamanho máximo do output e mensagens
 #define INPUT_SIZE 256   // tamanho de input para comandos
+#define MAX_FIFO_NAME 256 // tamanho máximo de nome de cliente
+
+
 
 #define SERVER_LOG_FIFO "/tmp/login_fifo" // nome do FIFO do servidor para login
+#define SERVER_FIFO "/tmp/server_fifo" // nome do FIFO do servidor para login
+
 
 typedef enum
 {
@@ -18,7 +23,8 @@ typedef enum
     EXITED,
     QUITED, 
     STARTED,
-    PLAYING
+    PLAYING,
+    REINSTATED
 } LogState; // estados de login
 
 // estrutura simples para nome e  pontos de jogador
@@ -44,5 +50,5 @@ typedef struct
 {
     char name[MAX_LEN_NAME];        // nome do jogador
     pid_t player_pid;               // pid do processo cliente
-    char player_fifo[MAX_LEN_NAME]; // nome do fifo do cliente
+    char player_fifo[MAX_FIFO_NAME]; // nome do fifo do cliente
 } PlayerLog;

@@ -20,28 +20,30 @@ int main()
     ComMsg msg;
     MsgThrd msg_trd;
     CliThrd cli_trd;
-    int srv_fifo_fd; //descritor do fifo do servidor
+    int srv_log_fifo_fd; //descritor do fifo do servidor
     int clt_fifo_fd; //descritor do fifo do cliente
     int log_res;     //tamanho da resposta
 
-    memset(&player, 0, sizeof player);
+    //abre fifo do servidor para escrita
+    srv_log_fifo_fd = open(SERVER_LOG_FIFO, O_WRONLY);
 
-    //Obtém pid do processo, cria nome para o fifo com base no pid, cria fifo
-    player.player_pid = getpid();
-    sprintf(player.player_fifo, CLIENT_LOG_FIFO, player.player_pid);
-    if (mkfifo(player.player_fifo, 0777) == -1)
-    {
-        perror(PIPE_ERROR);
-        return EXIT_FAILURE;
-    }
-    //fim
-    //abe fifo do servidor para escrita
-    srv_fifo_fd = open(SERVER_LOG_FIFO, O_WRONLY);
-
-    if (srv_fifo_fd == -1)
+    if (srv_log_fifo_fd == -1)
     {
         perror(ERROR_SERVER_FIFO);
         remove(player.player_fifo);
+        return EXIT_FAILURE;
+    }
+    //fim
+
+    memset(&player, 0, sizeof player);
+
+    print(NAME_PROMPT_OUT, STDOUT_FILENO);
+    get_user_input(player.name, STDIN_FILENO, MAX_LEN_NAME);
+    
+    sprintf(player.player_fifo, CLIENT_LOG_FIFO, player.name);
+    if (mkfifo(player.player_fifo, 0777) == -1)
+    {
+        perror(PIPE_ERROR);
         return EXIT_FAILURE;
     }
     //fim
@@ -52,16 +54,13 @@ int main()
     if (clt_fifo_fd == -1)
     {
         perror(ERROR_CLIENT_FIFO);
-        close(srv_fifo_fd);
+        close(srv_log_fifo_fd);
         remove(player.player_fifo);
         return (EXIT_FAILURE);
     }
+    player.player_pid = getpid();
 
-    //Rotina de login no servidor com verificação da resposta e do estado de login
-    print(NAME_PROMPT_OUT, STDOUT_FILENO);
-    get_user_input(player.name, STDIN_FILENO, MAX_LEN_NAME);
-
-    log_res = write(srv_fifo_fd, &player, sizeof player);
+    log_res = write(srv_log_fifo_fd, &player, sizeof player);
 
     log_res = read(clt_fifo_fd, &state, sizeof state);
 
@@ -74,13 +73,13 @@ int main()
             break;
         case LOGGED:
             print("Já existe um cliente com o mesmo nome...\n", STDERR_FILENO);
-            close(srv_fifo_fd);
+            close(srv_log_fifo_fd);
             remove(player.player_fifo);
             exit(EXIT_FAILURE);
             break;
         case MAX_USERS:
             print("Atingido o número máximo de clientes, tente mais tarde...\n", STDERR_FILENO);
-            close(srv_fifo_fd);
+            close(srv_log_fifo_fd);
             remove(player.player_fifo);
             exit(EXIT_FAILURE);
             break;
@@ -92,6 +91,18 @@ int main()
     {
         print("Dados corrompidos", STDERR_FILENO);
         exit(EXIT_FAILURE);
+    }
+    //fim
+    close(srv_log_fifo_fd);
+    int srv_fifo_fd;
+
+    srv_fifo_fd = open(SERVER_FIFO, O_WRONLY);
+
+    if (srv_fifo_fd == -1)
+    {
+        perror(ERROR_SERVER_FIFO);
+        remove(player.player_fifo);
+        return EXIT_FAILURE;
     }
     //fim
 

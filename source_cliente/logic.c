@@ -52,6 +52,16 @@ void *com_thread(void *arg)
                 pthread_kill(msg_trd->com_tid, SIGUSR2);
                 break;
             }
+            else if (msg_trd->msg->log_state == SUSPENDED)
+            {
+                close(msg_trd->srv_fifo_fd);    
+                print("\nFoi suspenso do campeonato!\nAguarde readmissão!\n>", STDOUT_FILENO);
+            }
+            else if (msg_trd->msg->log_state == REINSTATED)
+            {
+                msg_trd->srv_fifo_fd = open(SERVER_LOG_FIFO, O_WRONLY); 
+                print("\nFoi readmitido, pode continuar a jogar normalmente!\n>", STDOUT_FILENO);
+            }
             else
             {
                 print(msg_trd->msg->msg, STDOUT_FILENO);
@@ -105,12 +115,12 @@ void *cli_thread(void *arg)
             {
                 strcpy(msg.msg, input);
                 msg.log_state = PLAYING;
-                log_res = write(cli_trd->srv_fifo_fd, &msg, sizeof msg);
-
+                log_res = write(cli_trd->srv_fifo_fd, &msg, sizeof msg);           
                 if (log_res == -1)
                 {
-                    print("Aguarde pelo início do jogo...", STDOUT_FILENO);
+                    print("Não é possível comunicar com o servidor, aguarde...\n>", STDOUT_FILENO);
                 }
+
             }
         }
     }

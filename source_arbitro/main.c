@@ -194,8 +194,7 @@ int main(int argc, char **argv)
     timer.timer_mutex = &timer_mutex;
     timer.pause = &login.pause;
     timer.clients = clients;
-    timer.server = &server;
-
+    timer.server = &server;  
 
     if (pthread_create(&timer.tid, NULL, time_handler, (void *)&timer))
     {
@@ -216,6 +215,8 @@ int main(int argc, char **argv)
     admin.keep_alive = 1;
     admin.timer_trd = &timer;
     admin.login_trd = &login;
+    admin.countdown = false;
+    timer.countdown = &admin.countdown;
 
     if (pthread_create(&admin.tid, NULL, admin_thread, (void *)&admin))
     {
@@ -228,10 +229,11 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
     //fim
-
+    
     pthread_join(login.tid, &login.retval);
     pthread_join(timer.tid, &timer.retval);
-
+    admin.countdown = false;
+    
     close(server.srv_log_fifo_fd);
     remove(SERVER_LOG_FIFO);
 
@@ -259,8 +261,11 @@ int main(int argc, char **argv)
 
         close(server.srv_fifo_fd);
         remove(SERVER_FIFO);
+        admin.keep_alive = 0;
         pthread_kill(admin.tid, SIGUSR1);
         pthread_join(admin.tid, &admin.retval);
+        pthread_mutex_destroy(&mutex);
+        pthread_mutex_destroy(&timer_mutex);
         exit(EXIT_SUCCESS);
     }
 
@@ -278,7 +283,6 @@ int main(int argc, char **argv)
         gtrd[i].mutex = &mutex;
         pthread_create(&gtrd[i].tid, NULL, game_thread, (void *)&gtrd[i]);
     }
-    
 
     clt_msg.keep_alive = 1;
     clt_msg.pli = clients;
@@ -288,7 +292,6 @@ int main(int argc, char **argv)
     clt_msg.admin_thread = &admin;
 
     pthread_create(&clt_msg.tid, NULL, game_clt_thread, (void *)&clt_msg);
-
     pthread_join(admin.tid, &admin.retval);
 
     for (int i = 0; i < server.player_count; i++)
@@ -297,8 +300,7 @@ int main(int argc, char **argv)
         {
             kill(clients[i].game_pid, SIGUSR1);
         }
-
-        kill(gtrd[i].tid, SIGUSR1);
+        //kill(gtrd[i].tid, SIGUSR1);
         msg.log_state = EXITED;
 
         if (write(clients[i].clt_fifo_fd, &msg, sizeof msg) == -1)
@@ -308,9 +310,8 @@ int main(int argc, char **argv)
                 perror("sinal");
             }
         }
-
-        close(clients[i].clt_fifo_fd);
         pthread_join(gtrd[i].tid, &gtrd[i].retval);
+        close(clients[i].clt_fifo_fd);
     }
     clt_msg.keep_alive = 0;
     pthread_kill(clt_msg.tid, SIGUSR1);

@@ -214,7 +214,6 @@ void *time_handler(void *arg)
     TimerTrd *t = (TimerTrd *)arg;
     ComMsg msg;
     memset(&msg, 0, sizeof msg);
-    
 
     while (*t->pause)
     {
@@ -225,15 +224,20 @@ void *time_handler(void *arg)
     {
         print(msg.msg, STDOUT_FILENO);
     }
-    for(int i = 0; i < t->server->player_count; i++){
-        write(t->clients[i].clt_fifo_fd, &msg, sizeof msg);
+    if (*t->wait_time > 0)
+    {
+        for (int i = 0; i < t->server->player_count; i++)
+        {
+            write(t->clients[i].clt_fifo_fd, &msg, sizeof msg);
+        }
     }
+    *t->countdown = true;
     sleep(*t->wait_time);
+
     *t->log_keep_alive = 0;
     pthread_kill(t->log_tid, SIGUSR1);
     return NULL;
 }
-
 
 void *login_thread(void *arg)
 {
@@ -419,7 +423,7 @@ void *admin_thread(void *arg)
             }
             else if (input[0] == 'K')
             {
-                if (*admin->timer_trd->pause == true)
+                if (*admin->timer_trd->pause == true || admin->countdown == true)
                 {
                     print("O comando só está disponível no decorrer do campeonato!\n", STDERR_FILENO);
                 }
@@ -478,7 +482,7 @@ void *admin_thread(void *arg)
             }
             else if (strcmp(input, "END") == 0)
             {
-                if (*admin->timer_trd->pause == true)
+                if (*admin->timer_trd->pause == true || admin->countdown == true)
                 {
                     print("O comando só está disponível no decorrer do campeonato!\n", STDERR_FILENO);
                 }
@@ -489,7 +493,7 @@ void *admin_thread(void *arg)
             }
             else if (input[0] == 'S')
             {
-                if (*admin->timer_trd->pause == true)
+                if (*admin->timer_trd->pause == true || admin->countdown == true)
                 {
                     print("O comando só está disponível no decorrer do campeonato!\n", STDERR_FILENO);
                 }
@@ -530,7 +534,7 @@ void *admin_thread(void *arg)
             }
             else if (input[0] == 'R')
             {
-                if (*admin->timer_trd->pause == true)
+                if (*admin->timer_trd->pause == true || admin->countdown == true)
                 {
                     print("O comando só está disponível no decorrer do campeonato!\n", STDERR_FILENO);
                 }
@@ -569,7 +573,12 @@ void *admin_thread(void *arg)
                     }
                 }
             }
-            else if (strcmp(input, "EXIT") == 0){
+            else if (strcmp(input, "EXIT") == 0)
+            {
+                if(admin->countdown == true){
+                    print("Comando não disponível durante a contagem decrescente para o início do campeonato!\n", STDERR_FILENO);
+                }
+                else
                 admin->keep_alive = 0;
             }
             else
@@ -589,7 +598,7 @@ void *game_clt_thread(void *arg)
 {
     CltMsgTrd *clt_msg = (CltMsgTrd *)arg;
     ComMsg msg;
- 
+
     struct sigaction act;
 
     memset(&act, 0, sizeof act);
@@ -598,7 +607,6 @@ void *game_clt_thread(void *arg)
     act.sa_handler = sig_exit;
     sigaction(SIGUSR1, &act, NULL);
 
-  
     while (clt_msg->keep_alive == 1)
     {
         memset(&msg, 0, sizeof msg);
@@ -639,9 +647,9 @@ void *game_clt_thread(void *arg)
                         }
                         break;
                     }
-                    else if(clt_msg->admin_thread->login_trd->pause == true){
+                    else if (clt_msg->admin_thread->login_trd->pause == true)
+                    {
                         strcpy(msg.msg, "Aguarde pelo início do jogo!\n");
-                        
                     }
 
                     write(clt_msg->pli[i].fd_pipe_write[1], &msg.msg, strlen(msg.msg) + 1);

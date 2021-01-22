@@ -97,6 +97,7 @@ typedef struct
     bool *pause;
     PlayerInfo *clients;
     ServerSettings *server;
+    bool *countdown;
 } TimerTrd;
 
 typedef struct
@@ -111,6 +112,7 @@ typedef struct
     TimerTrd *timer_trd;
     LoginThr *login_trd;
     bool *end;
+    bool countdown;
 } AdminThread;
 
 typedef struct

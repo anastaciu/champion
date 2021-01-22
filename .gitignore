@@ -52,10 +52,11 @@ Mkfile.old
 dkms.conf
 
 #Custom execs
-jogo
+
 cliente
 arbitro
 g_forca1
 g_forca2
 g_forca3
+g_forca4
 

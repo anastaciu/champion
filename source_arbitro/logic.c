@@ -181,31 +181,19 @@ void *game_thread(void *arg)
         strcpy(msg.game_name, g_trd->pli->game_name);
         msg.log_state = PLAYING;
 
-        //while (g_trd->keep_alive == 1)
         while ((nbytes = read(g_trd->pli->fd_pipe_read[0], &msg.msg, sizeof msg.msg)) > 0)
         {
-            //nbytes = read(g_trd->pli->fd_pipe_read[0], &msg.msg, sizeof msg.msg);
             msg.msg[nbytes] = '\0';
-
-            //if (nbytes <= 0)
-            //{
-            //g_trd->keep_alive = 0;
-            //}
-            //if (g_trd->keep_alive != 0)
-            //{
             nbytes = write(g_trd->pli->clt_fifo_fd, &msg, sizeof msg);
-            //}
         }
-        wait(&exit_status);
-        print("\n", STDOUT_FILENO);
 
+        wait(&exit_status);
         if (WIFEXITED(exit_status))
         {
             g_trd->pli->points = WEXITSTATUS(exit_status);
-            printf("O jogador %s terminou com %d pontos\n", g_trd->pli->name, g_trd->pli->points);
-            fflush(stdout);
+            //printf("O jogador %s terminou com %d pontos\n", g_trd->pli->name, g_trd->pli->points);
+            //fflush(stdout);
         }
-        print(">", STDOUT_FILENO);
     }
 
     return NULL;
@@ -367,9 +355,9 @@ char **list_games(const char *path, int *n_games)
 
 int compare(const void *a, const void *b)
 {
-    PlayerInfo p1 = *(PlayerInfo *)a;
-    PlayerInfo p2 = *(PlayerInfo *)b;
-    return p1.points - p2.points;
+    PlayerInfo *p1 = (PlayerInfo *)a;
+    PlayerInfo *p2 = (PlayerInfo *)b;
+    return p2->points - p1->points;
 }
 
 void *admin_thread(void *arg)

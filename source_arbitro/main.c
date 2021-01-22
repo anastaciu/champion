@@ -327,7 +327,8 @@ int main(int argc, char **argv)
 
         if (server.wait_time == 0)
         {
-
+            qsort(clients, server.player_count, sizeof(PlayerInfo), compare);
+            
             print("\n", STDOUT_FILENO);
             for (int i = 0; i < server.player_count; i++)
             {

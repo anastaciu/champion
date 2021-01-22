@@ -19,6 +19,7 @@ void *com_thread(void *arg)
 {
     MsgThrd *msg_trd = (MsgThrd *)arg;
     bool started = false;
+    LogState current = PLAYING;
 
     do
     {
@@ -57,13 +58,22 @@ void *com_thread(void *arg)
             }
             else if (msg_trd->msg->log_state == SUSPENDED)
             {
-                close(*msg_trd->srv_fifo_fd);
-                print("\nFoi suspenso do campeonato!\nAguarde readmissão!\n>", STDOUT_FILENO);
+                if (current != SUSPENDED)
+                {
+                    close(*msg_trd->srv_fifo_fd);
+                    print("\nFoi suspenso do campeonato!\nAguarde readmissão!\n>", STDOUT_FILENO);
+                    current = SUSPENDED;
+                }
             }
             else if (msg_trd->msg->log_state == REINSTATED)
             {
-                *msg_trd->srv_fifo_fd = open(SERVER_LOG_FIFO, O_WRONLY);
-                print("\nFoi readmitido, pode continuar a jogar normalmente!\n>", STDOUT_FILENO);
+                if (current == SUSPENDED)
+                {
+                    *msg_trd->srv_fifo_fd = open(SERVER_LOG_FIFO, O_WRONLY);
+                    print("\nFoi readmitido, pode continuar a jogar normalmente!\n>", STDOUT_FILENO);
+                    *msg_trd->srv_fifo_fd = open(SERVER_FIFO, O_WRONLY);
+                    current = PLAYING;
+                }
             }
             else if (msg_trd->msg->log_state == STARTED)
             {
@@ -112,7 +122,7 @@ int fd_is_valid(int fd)
 void *cli_thread(void *arg)
 {
     char input[INPUT_SIZE] = "x"; //char array para inputs
-    int log_res;                  //tamanho da resposta
+
     CliThrd *cli_trd = (CliThrd *)arg;
     ComMsg msg;
     struct sigaction act;
@@ -143,10 +153,11 @@ void *cli_thread(void *arg)
             {
                 strcpy(msg.msg, input);
                 msg.log_state = PLAYING;
-                if(fd_is_valid(*cli_trd->srv_fifo_fd)){
-                log_res = write(*cli_trd->srv_fifo_fd, &msg, sizeof msg);
+                if (fd_is_valid(*cli_trd->srv_fifo_fd))
+                {
+                    write(*cli_trd->srv_fifo_fd, &msg, sizeof msg);
                 }
-                else          
+                else
                 {
                     print("Neste momento não é permitido comunicar com o servidor, aguarde...\n>", STDOUT_FILENO);
                 }

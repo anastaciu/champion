@@ -19,14 +19,6 @@
 int main(int argc, char **argv)
 {
 
-    //Cria FIFO de login do servidor
-    if (mkfifo(SERVER_LOG_FIFO, 0777) == -1)
-    {
-        print(PIPE_ERROR, STDERR_FILENO);
-        return EXIT_FAILURE;
-    }
-    //fim
-
     char output[OUTPUT_SIZE]; // char array para outputs vários
     ServerSettings server;    // definições do servidor
     GameDirParsing gde;       // variavel de controlo para rotina de obtenção de variável de ambiente GAMEDIR
@@ -129,45 +121,58 @@ int main(int argc, char **argv)
 
     PlayerInfo clients[server.n_players]; //array de clientes definido com base no número máximo de jogadores
     GameThrd gtrd[server.n_players];      // array de threads para o jogo
-    //memset(clients, 0, sizeof clients);
-    //memset(gtrd, 0, sizeof gtrd);
 
-    //abre fifo do servidor para leitura e escrita
-    if ((server.srv_log_fifo_fd = open(SERVER_LOG_FIFO, O_RDWR)) == -1)
+    bool exit_server = false;
+    int global_wait_time = server.wait_time;
+    int global_game_time = server.game_duration;
+
+    do
     {
-        fprintf(stderr, "Erro ao abrir FIFO\n");
-        remove(SERVER_LOG_FIFO);
-        return EXIT_FAILURE;
-    }
-    //fim
+        //Cria FIFO de login do servidor
+        if (mkfifo(SERVER_LOG_FIFO, 0777) == -1)
+        {
+            print(PIPE_ERROR, STDERR_FILENO);
+            return EXIT_FAILURE;
+        }
+        //fim
 
-    //Cria FIFO de jogo do servidor
-    if (mkfifo(SERVER_FIFO, 0777) == -1)
-    {
-        print(PIPE_ERROR, STDERR_FILENO);
-        return EXIT_FAILURE;
-    }
-    //fim
+        //abre fifo do servidor para leitura e escrita
+        if ((server.srv_log_fifo_fd = open(SERVER_LOG_FIFO, O_RDWR)) == -1)
+        {
+            fprintf(stderr, "Erro ao abrir FIFO\n");
+            remove(SERVER_LOG_FIFO);
+            return EXIT_FAILURE;
+        }
+        //fim
 
-    //abre fifo do servidor para leitura e escrita
-    if ((server.srv_fifo_fd = open(SERVER_FIFO, O_RDWR)) == -1)
-    {
-        fprintf(stderr, "Erro ao abrir FIFO\n");
-        remove(SERVER_FIFO);
-        return EXIT_FAILURE;
-    }
-    //fim
+        //Cria FIFO de jogo do servidor
+        if (mkfifo(SERVER_FIFO, 0777) == -1)
+        {
+            print(PIPE_ERROR, STDERR_FILENO);
+            return EXIT_FAILURE;
+        }
+        //fim
 
-    //mutex para dados de clientes
-    pthread_mutex_init(&mutex, NULL);
+        //abre fifo do servidor para leitura e escrita
+        if ((server.srv_fifo_fd = open(SERVER_FIFO, O_RDWR)) == -1)
+        {
+            fprintf(stderr, "Erro ao abrir FIFO\n");
+            remove(SERVER_FIFO);
+            return EXIT_FAILURE;
+        }
+        //fim
 
-    //mutex de accesso à condição da thread timer
-    pthread_mutex_init(&timer_mutex, NULL);
-    bool exit_server = true;
-    //while (!exit_server)
-    //{
+        //mutex para dados de clientes
+        pthread_mutex_init(&mutex, NULL);
+
+        //mutex de accesso à condição da thread timer
+        pthread_mutex_init(&timer_mutex, NULL);
+
+        print("Novo campeonato iniciado, aguardando inscrição de jogadores\n", STDOUT_FILENO);
 
         //Setup de dados para a thread de login
+        server.wait_time = global_wait_time;
+        server.game_duration = global_game_time;
         login.keep_alive = 1;
         login.logged_users = clients;
         login.server = &server;
@@ -218,8 +223,10 @@ int main(int argc, char **argv)
         admin.keep_alive = 1;
         admin.timer_trd = &timer;
         admin.login_trd = &login;
+        admin.exit_server = &exit_server;
         admin.countdown = false;
         timer.countdown = &admin.countdown;
+    
 
         if (pthread_create(&admin.tid, NULL, admin_thread, (void *)&admin))
         {
@@ -245,21 +252,24 @@ int main(int argc, char **argv)
         if (server.player_count < 2)
         {
             admin.keep_alive = 0;
-            print("\nServidor encerrado!\n", STDOUT_FILENO);
+            print("Servidor encerrado!\n", STDOUT_FILENO);
             if (gde == ENV_ERROR)
             {
                 free(server.game_dir);
             }
-
             for (int i = 0; i < server.n_games; i++)
             {
                 free(server.game_list[i]);
             }
             free(server.game_list);
             msg.log_state = EXITED;
+
+
             if (server.player_count == 1)
-            {
+            {                
                 write(clients[0].clt_fifo_fd, &msg, sizeof msg);
+                kill(clients[0].game_pid,SIGUSR1);
+                pthread_join(gtrd[0].tid, &gtrd[0].retval);
             }
 
             close(server.srv_fifo_fd);
@@ -267,19 +277,19 @@ int main(int argc, char **argv)
             admin.keep_alive = 0;
             pthread_kill(admin.tid, SIGUSR1);
             pthread_join(admin.tid, &admin.retval);
+            pthread_join(clt_msg.tid, &clt_msg.retval);
             pthread_mutex_destroy(&mutex);
             pthread_mutex_destroy(&timer_mutex);
             exit(EXIT_SUCCESS);
         }
 
         memset(&msg, 0, sizeof msg);
-
         msg.log_state = STARTED;
-        strcpy(msg.msg, "\n");
+        //strcpy(msg.msg, "\n");
 
         for (int i = 0; i < server.player_count; i++)
         {
-            sprintf(msg.msg, "\nComeçou o jogo...\nO seu jogo é %s\n", clients[i].game_name);
+            sprintf(msg.msg, "\nComeçou o campeonato...\nO seu jogo é %s\n", clients[i].game_name);
             write(clients[i].clt_fifo_fd, &msg, sizeof msg);
             gtrd[i].pli = &clients[i];
             gtrd[i].keep_alive = 1;
@@ -303,7 +313,6 @@ int main(int argc, char **argv)
             {
                 kill(clients[i].game_pid, SIGUSR1);
             }
-            //kill(gtrd[i].tid, SIGUSR1);
             msg.log_state = EXITED;
 
             if (write(clients[i].clt_fifo_fd, &msg, sizeof msg) == -1)
@@ -316,22 +325,24 @@ int main(int argc, char **argv)
             pthread_join(gtrd[i].tid, &gtrd[i].retval);
             close(clients[i].clt_fifo_fd);
         }
+
         clt_msg.keep_alive = 0;
         pthread_kill(clt_msg.tid, SIGUSR1);
         pthread_join(clt_msg.tid, &clt_msg.retval);
         pthread_mutex_destroy(&mutex);
         pthread_mutex_destroy(&timer_mutex);
-    //}
+
+        //Fecha fifos abertos e elimina FIFO do servidor
+        close(server.srv_fifo_fd);
+        remove(SERVER_FIFO);
+        //fim
+    }while (!exit_server);
+
     //elimina memória reservada para game_dir caso ela tenha sido necessária
     if (gde == ENV_ERROR)
     {
         free(server.game_dir);
     }
-    //fim
-
-    //Fecha fifos abertos e elimina FIFO do servidor
-    close(server.srv_fifo_fd);
-    remove(SERVER_FIFO);
     //fim
 
     //elimina lista de jogos

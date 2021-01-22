@@ -182,7 +182,7 @@ void *game_thread(void *arg)
         msg.log_state = PLAYING;
 
         //while (g_trd->keep_alive == 1)
-        while ((nbytes = read(g_trd->pli->fd_pipe_read[0], &msg.msg, sizeof msg.msg)))
+        while ((nbytes = read(g_trd->pli->fd_pipe_read[0], &msg.msg, sizeof msg.msg)) > 0)
         {
             //nbytes = read(g_trd->pli->fd_pipe_read[0], &msg.msg, sizeof msg.msg);
             msg.msg[nbytes] = '\0';
@@ -197,13 +197,15 @@ void *game_thread(void *arg)
             //}
         }
         wait(&exit_status);
+        print("\n", STDOUT_FILENO);
+
         if (WIFEXITED(exit_status))
         {
             g_trd->pli->points = WEXITSTATUS(exit_status);
-            printf("\nO jogador %s terminou com %d pontos\n", g_trd->pli->name, g_trd->pli->points);
+            printf("O jogador %s terminou com %d pontos\n", g_trd->pli->name, g_trd->pli->points);
             fflush(stdout);
         }
-        fflush(stdout);
+        print(">", STDOUT_FILENO);
     }
 
     return NULL;
@@ -344,7 +346,7 @@ char **list_games(const char *path, int *n_games)
     }
     while ((d = readdir(dir)) != NULL)
     {
-        if ((d->d_name[0] == 'g' && d->d_name[1] == '_') || (d->d_name[0] == 'j' && d->d_name[1] == 'o')) //"jo" para jogo de acordo com as metas, tirar na versão final
+        if (d->d_name[0] == 'g' && d->d_name[1] == '_')
         {
             if (!(games = realloc(games, sizeof *games * (i + 1))))
             {
@@ -361,6 +363,13 @@ char **list_games(const char *path, int *n_games)
     *n_games = i;
     closedir(dir);
     return games;
+}
+
+int compare(const void *a, const void *b)
+{
+    PlayerInfo p1 = *(PlayerInfo *)a;
+    PlayerInfo p2 = *(PlayerInfo *)b;
+    return p1.points - p2.points;
 }
 
 void *admin_thread(void *arg)
@@ -468,7 +477,6 @@ void *admin_thread(void *arg)
                                 if (admin->server->player_count < 2)
                                 {
                                     print("\nNão há jogadores suficientes para continuar...\n", STDOUT_FILENO);
-
                                     pthread_exit(NULL);
                                 }
                                 break;
@@ -488,7 +496,8 @@ void *admin_thread(void *arg)
                 }
                 else
                 {
-                    print("Implementar end!\n", STDOUT_FILENO);
+                    print("O campeonato foi terminado!\n", STDERR_FILENO);
+                    admin->keep_alive = 0;
                 }
             }
             else if (input[0] == 'S')
@@ -575,10 +584,12 @@ void *admin_thread(void *arg)
             }
             else if (strcmp(input, "EXIT") == 0)
             {
-                if(admin->countdown == true){
+                if (admin->countdown == true)
+                {
                     print("Comando não disponível durante a contagem decrescente para o início do campeonato!\n", STDERR_FILENO);
                 }
                 else
+                    *admin->exit_server = true;
                 admin->keep_alive = 0;
             }
             else

@@ -25,3 +25,5 @@ void *game_thread(void *arg);
 
 void *game_clt_thread(void *arg);
 
+int compare(const void *a, const void *b);
+

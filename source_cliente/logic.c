@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdbool.h>
+#include <errno.h>
 
 #include "defaults.h"
 #include "../utils_interface.h"
@@ -103,6 +104,11 @@ void sig_handler(int sig)
     (void)sig;
 }
 
+int fd_is_valid(int fd)
+{
+    return fcntl(fd, F_GETFD) != -1 || errno != EBADF;
+}
+
 void *cli_thread(void *arg)
 {
     char input[INPUT_SIZE] = "x"; //char array para inputs
@@ -137,8 +143,10 @@ void *cli_thread(void *arg)
             {
                 strcpy(msg.msg, input);
                 msg.log_state = PLAYING;
+                if(fd_is_valid(*cli_trd->srv_fifo_fd)){
                 log_res = write(*cli_trd->srv_fifo_fd, &msg, sizeof msg);
-                if (log_res == -1)
+                }
+                else          
                 {
                     print("Neste momento não é permitido comunicar com o servidor, aguarde...\n>", STDOUT_FILENO);
                 }

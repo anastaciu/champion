@@ -21,7 +21,7 @@ int main()
     MsgThrd msg_trd;
     CliThrd cli_trd;
     int srv_log_fifo_fd; //descritor do fifo de login do servidor
-    int srv_fifo_fd; //descritor do fifo do servidor
+    int srv_fifo_fd = -1; //descritor do fifo do servidor
     int clt_fifo_fd; //descritor do fifo do cliente
     int log_res;     //tamanho da resposta
 

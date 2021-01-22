@@ -226,7 +226,6 @@ int main(int argc, char **argv)
         admin.exit_server = &exit_server;
         admin.countdown = false;
         timer.countdown = &admin.countdown;
-    
 
         if (pthread_create(&admin.tid, NULL, admin_thread, (void *)&admin))
         {
@@ -249,7 +248,7 @@ int main(int argc, char **argv)
 
         memset(&msg, 0, sizeof msg);
 
-        if (server.player_count < 2)
+        if (server.player_count < 2 && server.player_count != 0)
         {
             admin.keep_alive = 0;
             print("Servidor encerrado!\n", STDOUT_FILENO);
@@ -264,11 +263,10 @@ int main(int argc, char **argv)
             free(server.game_list);
             msg.log_state = EXITED;
 
-
             if (server.player_count == 1)
-            {                
+            {
                 write(clients[0].clt_fifo_fd, &msg, sizeof msg);
-                kill(clients[0].game_pid,SIGUSR1);
+                kill(clients[0].game_pid, SIGUSR1);
                 pthread_join(gtrd[0].tid, &gtrd[0].retval);
             }
 
@@ -326,6 +324,18 @@ int main(int argc, char **argv)
             close(clients[i].clt_fifo_fd);
         }
 
+
+        if (server.wait_time == 0)
+        {
+
+            print("\n", STDOUT_FILENO);
+            for (int i = 0; i < server.player_count; i++)
+            {
+                printf("%s terminou com %d points\n", clients[i].name, clients[i].points);
+                fflush(stdout);
+            }
+        }
+
         clt_msg.keep_alive = 0;
         pthread_kill(clt_msg.tid, SIGUSR1);
         pthread_join(clt_msg.tid, &clt_msg.retval);
@@ -336,7 +346,7 @@ int main(int argc, char **argv)
         close(server.srv_fifo_fd);
         remove(SERVER_FIFO);
         //fim
-    }while (!exit_server);
+    } while (!exit_server);
 
     //elimina memória reservada para game_dir caso ela tenha sido necessária
     if (gde == ENV_ERROR)

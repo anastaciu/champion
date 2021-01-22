@@ -82,7 +82,7 @@ typedef struct
     pthread_cond_t *timer_cond;
     pthread_mutex_t *timer_mutex;
     bool pause;
-    bool *end;
+    bool *exit_server;
 } LoginThr;
 
 typedef struct
@@ -111,7 +111,7 @@ typedef struct
     int keep_alive;
     TimerTrd *timer_trd;
     LoginThr *login_trd;
-    bool *end;
+    bool *exit_server;
     bool countdown;
 } AdminThread;
 
@@ -125,5 +125,5 @@ typedef struct
     void *retval;
     pthread_mutex_t *mutex;
     AdminThread *admin_thread;  
-    bool *end;
+    bool *exit_server;
 } CltMsgTrd;

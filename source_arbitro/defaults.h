@@ -110,6 +110,8 @@ typedef struct
     void *retval;  // exit status da thread
     pthread_t tid; // id da thread
     pthread_mutex_t *mutex;
+    pthread_mutex_t *timer_mutex;
+    pthread_cond_t *timer_cond;
     int keep_alive;
     TimerTrd *timer_trd;
     LoginThr *login_trd;

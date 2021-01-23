@@ -205,10 +205,13 @@ void *time_handler(void *arg)
     ComMsg msg;
     memset(&msg, 0, sizeof msg);
 
+    pthread_mutex_lock(t->timer_mutex);
     while (*t->pause)
     {
-        sleep(1);
+        pthread_cond_wait(t->timer_cond, t->timer_mutex);
     }
+    pthread_mutex_unlock(t->timer_mutex);
+
     sprintf(msg.msg, "\nO compeonato terá início dento de %ld segundos!\n>", *t->wait_time);
     if (*t->wait_time)
     {
@@ -295,6 +298,7 @@ void *login_thread(void *arg)
                 {
                     pthread_mutex_lock(l_thrd->timer_mutex);
                     l_thrd->pause = false;
+                    pthread_cond_signal(l_thrd->timer_cond);
                     pthread_mutex_unlock(l_thrd->timer_mutex);
                 }
             }
@@ -598,8 +602,12 @@ void *admin_thread(void *arg)
     } while (admin->keep_alive == 1);
     admin->login_trd->keep_alive = 0;
     *admin->timer_trd->wait_time = 0;
-    *admin->timer_trd->pause = false;   
-    if(admin->gtime_trd->tid != 0){
+    pthread_mutex_lock(admin->timer_mutex);
+    *admin->timer_trd->pause = false;
+    pthread_cond_signal(admin->timer_cond);
+    pthread_mutex_unlock(admin->timer_mutex);
+    if (admin->gtime_trd->tid != 0)
+    {
         pthread_kill(admin->gtime_trd->tid, SIGUSR1);
     }
     pthread_exit(NULL);
@@ -668,7 +676,6 @@ void *game_clt_thread(void *arg)
         }
     }
     return NULL;
-    
 }
 
 void *game_timer(void *arg)

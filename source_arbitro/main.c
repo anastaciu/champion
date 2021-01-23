@@ -128,6 +128,8 @@ int main(int argc, char **argv)
         exit_server = false;
         pthread_mutex_t mutex;
         pthread_mutex_t timer_mutex;
+        pthread_cond_t timer_cond;
+
 
         //Cria FIFO de login do servidor
         if (mkfifo(SERVER_LOG_FIFO, 0777) == -1)
@@ -151,6 +153,7 @@ int main(int argc, char **argv)
 
         //mutex de accesso à condição da thread timer
         pthread_mutex_init(&timer_mutex, NULL);
+        pthread_cond_init(&timer_cond, NULL);
 
         print("Novo campeonato iniciado, aguardando inscrição de jogadores\n", STDOUT_FILENO);
 
@@ -167,6 +170,7 @@ int main(int argc, char **argv)
         login.gt = gtrd;
         login.mutex = &mutex;
         login.timer_mutex = &timer_mutex;
+        login.timer_cond = &timer_cond;
         login.pause = true;
         //fim
 
@@ -189,9 +193,11 @@ int main(int argc, char **argv)
         timer.log_tid = login.tid;
         timer.log_keep_alive = &login.keep_alive;
         timer.timer_mutex = &timer_mutex;
+        timer.timer_cond = &timer_cond;
         timer.pause = &login.pause;
         timer.clients = clients;
         timer.server = &server;
+
         //fim
 
         //thread de controlo do tempo de espera
@@ -236,7 +242,10 @@ int main(int argc, char **argv)
         admin.login_trd = &login;
         admin.exit_server = &exit_server;
         admin.gtime_trd = &gtimer_trd;
+        admin.timer_cond = &timer_cond;
+        admin.timer_mutex = &timer_mutex;
         timer.countdown = &admin.countdown;
+
         //fim
 
         //thread de administrador
@@ -257,9 +266,6 @@ int main(int argc, char **argv)
         pthread_join(timer.tid, &timer.retval);
         admin.countdown = false;
         //fim
-
-        printf("\nCampeonato iniciado, terá a duração de %ld minutos e %ld segundos\n>", server.game_duration / 60, server.game_duration % 60);
-        fflush(stdout);
 
         //fechar e remover FIFO de login
         close(server.srv_log_fifo_fd);
@@ -301,6 +307,8 @@ int main(int argc, char **argv)
             gtimer_trd.admin_thread = &admin;
             gtimer_trd.server = &server;
             pthread_create(&gtimer_trd.tid, NULL, game_timer, (void *)&gtimer_trd);
+            printf("\nCampeonato iniciado, terá a duração de %ld minutos e %ld segundos\n>", server.game_duration / 60, server.game_duration % 60);
+            fflush(stdout);
         }
 
         //lançamento das threads dos jogos
@@ -378,7 +386,7 @@ int main(int argc, char **argv)
             print("\n", STDOUT_FILENO);
             if (server.player_count == 1)
             {
-                sprintf(msg.msg, "Não há mais jogadores. Você é vencedor do campeonato com a %d pontos\n", clients[0].points);
+                sprintf(msg.msg, "Não há mais jogadores. Você é vencedor com %d pontos\n", clients[0].points);
                 write(clients[0].clt_fifo_fd, &msg, sizeof msg);
                 printf("%s terminou com %d points\n", clients[0].name, clients[0].points);
             }
@@ -388,12 +396,12 @@ int main(int argc, char **argv)
                 {
                     if (clients[i].player_pid == clients[0].player_pid)
                     {
-                        sprintf(msg.msg, "Terminou o campeonato\nVocê é vencedor com a pontuação de %d\n", clients[0].points);
+                        sprintf(msg.msg, "Você é vencedor com %d pontos\n", clients[0].points);
                         write(clients[i].clt_fifo_fd, &msg, sizeof msg);
                     }
                     else
                     {
-                        sprintf(msg.msg, "Terminou o campeonato.O vencedor é o/a %s, com a pontuação de %d\nA sua pontuação foi %d\n", clients[0].name, clients[0].points, clients[i].points);
+                        sprintf(msg.msg, "O vencedor é o/a %s, com %d pontos\nA sua pontuação foi %d pontos\n", clients[0].name, clients[0].points, clients[i].points);
                         write(clients[i].clt_fifo_fd, &msg, sizeof msg);
                     }
                     printf("%s terminou com %d points\n", clients[i].name, clients[i].points);

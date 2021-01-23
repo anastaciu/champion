@@ -21,6 +21,8 @@ void sig_handler(int sig)
 {
 	if (sig == SIGUSR1)
 	{
+		if(game.points > 255)
+			game.points = 255;
 		exit(game.points);
 	}
 }
@@ -34,11 +36,11 @@ int main()
 	int word_index = 0;
 	int old_index = 0;
 
-	char word[WORDSIZE];  //palavra a descobrir
+	char word[WORDSIZE];	//palavra a descobrir
 	char input[INPUT_SIZE]; //input do utilizador
 
 	//index da palavra escolhida aleatoriamente
-	srand((unsigned)time(NULL));
+	srand(getpid());
 
 	signal(SIGUSR1, sig_handler);
 

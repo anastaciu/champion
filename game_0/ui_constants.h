@@ -11,12 +11,13 @@
 |       Pedir letra ou tentar adivinhar palavra descontam uma tentativa       |\n\
 |         Se a letra for encontrada o número de tentativas mantém-se          |\n\
 +-----------------------------------------------------------------------------+\n\
-|                     Cada letra adivinhada vale 1 pontos                     |\n\
+|                     Cada letra adivinhada vale 1 ponto                      |\n\
 |      Caso não acerte, a pontuaçao final corresponde às letras descobertas   |\n\
 +-----------------------------------------------------------------------------+\n\
 |   Caso acerte, os pontos das letras descobertas não serão contabilizados    |\n\
 |    Adivinhar a palavra tem uma pontuação de 10 pontos + 2 x tentativas      |\n\
 | Adivinhar todas as letras tem uma pontuação de 5 pontos + 1 x tentativas    |\n\
+|            A pontuação é contabilizada no fim de cada palavra               |\n\
 +-----------------------------------------------------------------------------+\n"
 
 #define MENU "\n\n* Escoha uma letra\n* ? para ver regras\n* Ou tente adivinhar a palavra\n>"

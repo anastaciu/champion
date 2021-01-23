@@ -464,8 +464,8 @@ void *admin_thread(void *arg)
                                 pthread_mutex_unlock(admin->mutex);
                                 if (admin->server->player_count < 2)
                                 {
-                                    print("\nNão há jogadores suficientes para continuar...\n", STDOUT_FILENO);
-                                    pthread_exit(NULL);
+                                    print("\nNão há jogadores suficientes para continuar...\n", STDOUT_FILENO);                              
+                                    admin->keep_alive = 0;                                 
                                 }
                                 break;
                             }
@@ -577,8 +577,10 @@ void *admin_thread(void *arg)
                     print("Comando não disponível durante a contagem decrescente para o início do campeonato!\n", STDERR_FILENO);
                 }
                 else
+                {
                     *admin->exit_server = true;
-                admin->keep_alive = 0;
+                    admin->keep_alive = 0;
+                }
             }
             else
             {
@@ -639,19 +641,17 @@ void *game_clt_thread(void *arg)
 
                         if (clt_msg->server->player_count < 2)
                         {
-                            print("Não há jogadores suficientes para continuar o jogo!\n", STDERR_FILENO);
+                            print("\nNão há jogadores suficientes para continuar o jogo!\n", STDERR_FILENO);
                             clt_msg->admin_thread->keep_alive = 0;
                             pthread_kill(clt_msg->admin_thread->tid, SIGUSR1);
-                            pthread_exit(NULL);
+                            clt_msg->keep_alive = 0;
                         }
                         break;
                     }
-                    else if (clt_msg->admin_thread->login_trd->pause == true)
+                    else
                     {
-                        strcpy(msg.msg, "Aguarde pelo início do jogo!\n");
+                        write(clt_msg->pli[i].fd_pipe_write[1], &msg.msg, strlen(msg.msg) + 1);
                     }
-
-                    write(clt_msg->pli[i].fd_pipe_write[1], &msg.msg, strlen(msg.msg) + 1);
 
                     break;
                 }

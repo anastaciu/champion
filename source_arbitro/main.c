@@ -242,6 +242,7 @@ int main(int argc, char **argv)
         pthread_join(login.tid, &login.retval);
         pthread_join(timer.tid, &timer.retval);
         admin.countdown = false;
+        
 
         close(server.srv_log_fifo_fd);
         remove(SERVER_LOG_FIFO);
@@ -333,21 +334,29 @@ int main(int argc, char **argv)
             memset(&msg, 0, sizeof msg);
             msg.log_state = ENDED;
             print("\n", STDOUT_FILENO);
-            for (int i = 0; i < server.player_count; i++)
+            if (server.player_count == 1)
             {
-                if (clients[i].player_pid == clients[0].player_pid)
+                sprintf(msg.msg, "Não há mais jogadores. Você é vencedor do campeonato, a sua pontuação é %d\n", clients[0].points);
+                write(clients[0].clt_fifo_fd, &msg, sizeof msg);
+            }
+            else
+            {
+                for (int i = 0; i < server.player_count; i++)
                 {
-                    sprintf(msg.msg, "Você é vencedor do campeonato, com a pontuação de %d\n", clients[0].points);
-                    write(clients[i].clt_fifo_fd, &msg, sizeof msg);
+                    if (clients[i].player_pid == clients[0].player_pid)
+                    {
+                        sprintf(msg.msg, "Você é vencedor do campeonato, com a pontuação de %d\n", clients[0].points);
+                        write(clients[i].clt_fifo_fd, &msg, sizeof msg);
+                    }
+                    else
+                    {
+                        sprintf(msg.msg, "O vencedor do campeonato é o/a %s, com a pontuação de %d\nA sua pontuação foi %d\n", clients[0].name, clients[0].points, clients[i].points);
+                        write(clients[i].clt_fifo_fd, &msg, sizeof msg);
+                    }
+                    printf("%s terminou com %d points\n", clients[i].name, clients[i].points);
+                    fflush(stdout);
+                    close(clients[i].clt_fifo_fd);
                 }
-                else
-                {
-                    sprintf(msg.msg, "O vencedor do campeonato é o/a %s, com a pontuação de %d\nA sua pontuação foi %d\n", clients[0].name, clients[0].points, clients[i].points);
-                    write(clients[i].clt_fifo_fd, &msg, sizeof msg);
-                }
-                printf("%s terminou com %d points\n", clients[i].name, clients[i].points);
-                fflush(stdout);
-                close(clients[i].clt_fifo_fd);
             }
         }
 

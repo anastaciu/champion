@@ -11,19 +11,26 @@ int get_maxplayer();
 //Verifica variável de ambiente MAXPLAYER e estabelece o seu valor retorna flags de sucesso ou erro
 GameDirParsing get_game_dir(char **game_dir);
 
-//Função para thread de login
+//para thread de login
 void *login_thread(void *arg);
 
-//Retorna a lista de nomes de ficheiros presentes na diretoria path
+//retorna a lista de nomes de ficheiros presentes na diretoria path
 char **list_games(const char *path, int *n_games);
 
+//para thread de controlo do tempo de espera
 void *time_handler(void *arg);
 
+//para thread de administração do servidor, comandos
 void *admin_thread(void *arg);
 
+//para thread de controlo de comunicação jogo -> cliente
 void *game_thread(void *arg);
 
+//para thread de receṕção de mensagens dos clientes, comandos e reencaminhamento para os respectivos jogos
 void *game_clt_thread(void *arg);
 
+//comparador para qsort
 int compare(const void *a, const void *b);
 
+// para thread de controlo do tempo de jogo
+void *game_timer(void *arg);

@@ -464,8 +464,8 @@ void *admin_thread(void *arg)
                                 pthread_mutex_unlock(admin->mutex);
                                 if (admin->server->player_count < 2)
                                 {
-                                    print("\nNão há jogadores suficientes para continuar...\n", STDOUT_FILENO);                              
-                                    admin->keep_alive = 0;                                 
+                                    print("\nNão há jogadores suficientes para continuar...\n", STDOUT_FILENO);
+                                    admin->keep_alive = 0;
                                 }
                                 break;
                             }
@@ -580,6 +580,13 @@ void *admin_thread(void *arg)
                 {
                     *admin->exit_server = true;
                     admin->keep_alive = 0;
+                    if (admin->server->player_count == 1)
+                    {
+                        ComMsg msg;
+                        memset(&msg, 0, sizeof msg);
+                        msg.log_state = EXITED;
+                        write(admin->clients[0].clt_fifo_fd, &msg, sizeof msg);
+                    }
                 }
             }
             else
@@ -591,7 +598,10 @@ void *admin_thread(void *arg)
     } while (admin->keep_alive == 1);
     admin->login_trd->keep_alive = 0;
     *admin->timer_trd->wait_time = 0;
-    *admin->timer_trd->pause = false;
+    *admin->timer_trd->pause = false;   
+    if(admin->gtime_trd->tid != 0){
+        pthread_kill(admin->gtime_trd->tid, SIGUSR1);
+    }
     pthread_exit(NULL);
 }
 
@@ -601,7 +611,6 @@ void *game_clt_thread(void *arg)
     ComMsg msg;
 
     struct sigaction act;
-
     memset(&act, 0, sizeof act);
     act.sa_flags = 0;
     sigemptyset(&act.sa_mask);
@@ -658,5 +667,24 @@ void *game_clt_thread(void *arg)
             }
         }
     }
+    return NULL;
+    
+}
+
+void *game_timer(void *arg)
+{
+    GameTimerTrd *t_trd = (GameTimerTrd *)arg;
+
+    struct sigaction act;
+    memset(&act, 0, sizeof act);
+    act.sa_flags = 0;
+    sigemptyset(&act.sa_mask);
+    act.sa_handler = sig_exit;
+    sigaction(SIGUSR1, &act, NULL);
+
+    sleep(t_trd->server->game_duration);
+    t_trd->admin_thread->keep_alive = 0;
+    pthread_kill(t_trd->admin_thread->tid, SIGUSR1);
+
     return NULL;
 }

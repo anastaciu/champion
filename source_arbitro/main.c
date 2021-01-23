@@ -27,10 +27,7 @@ int main(int argc, char **argv)
     TimerTrd timer;
     ComMsg msg;
     CltMsgTrd clt_msg;
-    pthread_mutex_t mutex;
-    pthread_mutex_t timer_mutex;
-
-    server.player_count = 0; // reset do número de jogadores ligados ao servidor
+    GameTimerTrd gtimer_trd;
 
     //trata sinal de encerramento do processo em caso de falha ao escrever em pipe
     if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
@@ -122,12 +119,16 @@ int main(int argc, char **argv)
     PlayerInfo clients[server.n_players]; //array de clientes definido com base no número máximo de jogadores
     GameThrd gtrd[server.n_players];      // array de threads para o jogo
 
-    bool exit_server = false;
+    bool exit_server;
     int global_wait_time = server.wait_time;
     int global_game_time = server.game_duration;
 
     do
     {
+        exit_server = false;
+        pthread_mutex_t mutex;
+        pthread_mutex_t timer_mutex;
+
         //Cria FIFO de login do servidor
         if (mkfifo(SERVER_LOG_FIFO, 0777) == -1)
         {
@@ -145,23 +146,6 @@ int main(int argc, char **argv)
         }
         //fim
 
-        //Cria FIFO de jogo do servidor
-        if (mkfifo(SERVER_FIFO, 0777) == -1)
-        {
-            print(PIPE_ERROR, STDERR_FILENO);
-            return EXIT_FAILURE;
-        }
-        //fim
-
-        //abre fifo do servidor para leitura e escrita
-        if ((server.srv_fifo_fd = open(SERVER_FIFO, O_RDWR)) == -1)
-        {
-            fprintf(stderr, "Erro ao abrir FIFO\n");
-            remove(SERVER_FIFO);
-            return EXIT_FAILURE;
-        }
-        //fim
-
         //mutex para dados de clientes
         pthread_mutex_init(&mutex, NULL);
 
@@ -171,12 +155,15 @@ int main(int argc, char **argv)
         print("Novo campeonato iniciado, aguardando inscrição de jogadores\n", STDOUT_FILENO);
 
         //Setup de dados para a thread de login
+        memset(clients, 0, sizeof clients);
+        memset(gtrd, 0, sizeof gtrd);
         server.wait_time = global_wait_time;
         server.game_duration = global_game_time;
+        server.player_count = 0;
+        memset(&login, 0, sizeof login);
         login.keep_alive = 1;
         login.logged_users = clients;
         login.server = &server;
-        server.player_count = 0;
         login.gt = gtrd;
         login.mutex = &mutex;
         login.timer_mutex = &timer_mutex;
@@ -196,6 +183,8 @@ int main(int argc, char **argv)
         }
         //fim
 
+        //setup de dados para a thread de controlo do tempo de espera
+        memset(&timer, 0, sizeof timer);
         timer.wait_time = &server.wait_time;
         timer.log_tid = login.tid;
         timer.log_keep_alive = &login.keep_alive;
@@ -203,7 +192,9 @@ int main(int argc, char **argv)
         timer.pause = &login.pause;
         timer.clients = clients;
         timer.server = &server;
+        //fim
 
+        //thread de controlo do tempo de espera
         if (pthread_create(&timer.tid, NULL, time_handler, (void *)&timer))
         {
             perror("\nErro na criação da thread");
@@ -214,8 +205,28 @@ int main(int argc, char **argv)
             }
             exit(EXIT_FAILURE);
         }
-        //memset(&admin, 0, sizeof admin);
+        //fim
 
+        //Cria FIFO de jogo do servidor para o campeonato
+        if (mkfifo(SERVER_FIFO, 0777) == -1)
+        {
+            print(PIPE_ERROR, STDERR_FILENO);
+            return EXIT_FAILURE;
+        }
+        //fim
+
+        //abre fifo de campeonato do servidor para leitura e escrita
+        if ((server.srv_fifo_fd = open(SERVER_FIFO, O_RDWR)) == -1)
+        {
+            fprintf(stderr, "Erro ao abrir FIFO\n");
+            remove(SERVER_FIFO);
+            return EXIT_FAILURE;
+        }
+        //fim
+
+        //setup dos dados para a thread de administração do servidor
+        memset(&admin, 0, sizeof admin);
+        memset(&gtimer_trd, 0, sizeof gtimer_trd);
         admin.clients = clients;
         admin.gtrd = gtrd;
         admin.server = &server;
@@ -224,9 +235,11 @@ int main(int argc, char **argv)
         admin.timer_trd = &timer;
         admin.login_trd = &login;
         admin.exit_server = &exit_server;
-        admin.countdown = false;
+        admin.gtime_trd = &gtimer_trd;
         timer.countdown = &admin.countdown;
+        //fim
 
+        //thread de administrador
         if (pthread_create(&admin.tid, NULL, admin_thread, (void *)&admin))
         {
             perror("\nErro na criação da thread");
@@ -239,18 +252,24 @@ int main(int argc, char **argv)
         }
         //fim
 
+        //fim do tempo de espera e da thread de login
         pthread_join(login.tid, &login.retval);
         pthread_join(timer.tid, &timer.retval);
         admin.countdown = false;
-        
+        //fim
 
+        printf("\nCampeonato iniciado, terá a duração de %ld minutos e %ld segundos\n>", server.game_duration / 60, server.game_duration % 60);
+        fflush(stdout);
+
+        //fechar e remover FIFO de login
         close(server.srv_log_fifo_fd);
         remove(SERVER_LOG_FIFO);
+        //fim
 
-        memset(&msg, 0, sizeof msg);
-
+        //terminar caso o número de cilentes seja inferior a 2
         if (server.player_count < 2 && server.player_count != 0)
         {
+            memset(&msg, 0, sizeof msg);
             admin.keep_alive = 0;
             print("Servidor encerrado!\n", STDOUT_FILENO);
             if (gde == ENV_ERROR)
@@ -264,27 +283,29 @@ int main(int argc, char **argv)
             free(server.game_list);
             msg.log_state = EXITED;
 
-            if (server.player_count == 1)
-            {
-                write(clients[0].clt_fifo_fd, &msg, sizeof msg);
-                kill(clients[0].game_pid, SIGUSR1);
-                pthread_join(gtrd[0].tid, &gtrd[0].retval);
-            }
-
             close(server.srv_fifo_fd);
             remove(SERVER_FIFO);
             admin.keep_alive = 0;
             pthread_kill(admin.tid, SIGUSR1);
             pthread_join(admin.tid, &admin.retval);
-            pthread_join(clt_msg.tid, &clt_msg.retval);
             pthread_mutex_destroy(&mutex);
             pthread_mutex_destroy(&timer_mutex);
             exit(EXIT_SUCCESS);
         }
+        //fim
 
+        //thread de controlo de tempo de jogo
+        if (server.player_count > 1)
+        {
+            memset(&gtimer_trd, 0, sizeof gtimer_trd);
+            gtimer_trd.admin_thread = &admin;
+            gtimer_trd.server = &server;
+            pthread_create(&gtimer_trd.tid, NULL, game_timer, (void *)&gtimer_trd);
+        }
+
+        //lançamento das threads dos jogos
         memset(&msg, 0, sizeof msg);
         msg.log_state = STARTED;
-        //strcpy(msg.msg, "\n");
 
         for (int i = 0; i < server.player_count; i++)
         {
@@ -295,7 +316,17 @@ int main(int argc, char **argv)
             gtrd[i].mutex = &mutex;
             pthread_create(&gtrd[i].tid, NULL, game_thread, (void *)&gtrd[i]);
         }
+        //fim
 
+        //thread de controlo de tempo de jogo
+        
+        gtimer_trd.admin_thread = &admin;
+        gtimer_trd.server = &server;
+
+        //pthread_create(&gtimer_trd.tid, NULL, game_timer, (void *)&gtimer_trd);
+
+        //setup e lançamento dos dados para thread de leitura de mensagens dos clientes
+        memset(&clt_msg, 0, sizeof clt_msg);
         clt_msg.keep_alive = 1;
         clt_msg.pli = clients;
         clt_msg.server = &server;
@@ -304,8 +335,18 @@ int main(int argc, char **argv)
         clt_msg.admin_thread = &admin;
 
         pthread_create(&clt_msg.tid, NULL, game_clt_thread, (void *)&clt_msg);
-        pthread_join(admin.tid, &admin.retval);
+        //fim
 
+        //fim da thread de administração e da thread de controlo de duração do campeonato
+        pthread_join(admin.tid, &admin.retval);
+        if (gtimer_trd.tid != 0)
+        {
+            pthread_join(gtimer_trd.tid, &gtimer_trd.retval);
+        }
+
+
+
+        //fim das threads dos jogos
         for (int i = 0; i < server.player_count; i++)
         {
             if (clients[i].game_pid != 0)
@@ -326,18 +367,20 @@ int main(int argc, char **argv)
             }
             pthread_join(gtrd[i].tid, &gtrd[i].retval);
         }
+        //fim
 
+        //mensagens de fim de campeonato aos clientes
         if (server.wait_time == 0)
         {
             qsort(clients, server.player_count, sizeof clients[0], compare);
-            ComMsg msg;
             memset(&msg, 0, sizeof msg);
             msg.log_state = ENDED;
             print("\n", STDOUT_FILENO);
             if (server.player_count == 1)
             {
-                sprintf(msg.msg, "Não há mais jogadores. Você é vencedor do campeonato, a sua pontuação é %d\n", clients[0].points);
+                sprintf(msg.msg, "Não há mais jogadores. Você é vencedor do campeonato com a %d pontos\n", clients[0].points);
                 write(clients[0].clt_fifo_fd, &msg, sizeof msg);
+                printf("%s terminou com %d points\n", clients[0].name, clients[0].points);
             }
             else
             {
@@ -345,12 +388,12 @@ int main(int argc, char **argv)
                 {
                     if (clients[i].player_pid == clients[0].player_pid)
                     {
-                        sprintf(msg.msg, "Você é vencedor do campeonato, com a pontuação de %d\n", clients[0].points);
+                        sprintf(msg.msg, "Terminou o campeonato\nVocê é vencedor com a pontuação de %d\n", clients[0].points);
                         write(clients[i].clt_fifo_fd, &msg, sizeof msg);
                     }
                     else
                     {
-                        sprintf(msg.msg, "O vencedor do campeonato é o/a %s, com a pontuação de %d\nA sua pontuação foi %d\n", clients[0].name, clients[0].points, clients[i].points);
+                        sprintf(msg.msg, "Terminou o campeonato.O vencedor é o/a %s, com a pontuação de %d\nA sua pontuação foi %d\n", clients[0].name, clients[0].points, clients[i].points);
                         write(clients[i].clt_fifo_fd, &msg, sizeof msg);
                     }
                     printf("%s terminou com %d points\n", clients[i].name, clients[i].points);
@@ -359,18 +402,22 @@ int main(int argc, char **argv)
                 }
             }
         }
+        //fim
 
+        //fim da thread de leitura de mensagens dos clientes
         clt_msg.keep_alive = 0;
         pthread_kill(clt_msg.tid, SIGUSR1);
         pthread_join(clt_msg.tid, &clt_msg.retval);
         pthread_mutex_destroy(&mutex);
         pthread_mutex_destroy(&timer_mutex);
+        //fim
 
         //Fecha fifos abertos e elimina FIFO do servidor
         close(server.srv_fifo_fd);
         remove(SERVER_FIFO);
         //fim
-    } while (!exit_server);
+
+    } while (!exit_server); //equanto não houver exit, servidor inicia novo campeonato
 
     //elimina memória reservada para game_dir caso ela tenha sido necessária
     if (gde == ENV_ERROR)
@@ -386,5 +433,6 @@ int main(int argc, char **argv)
     }
     free(server.game_list);
     //fim
+
     print("O servidor foi encerrado\n", STDOUT_FILENO);
 }

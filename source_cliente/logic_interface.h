@@ -8,3 +8,5 @@ void sig_handler(int sig);
 
 void *cli_thread(void *arg);
 
+int fd_is_valid(int fd);
+

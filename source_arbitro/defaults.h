@@ -100,6 +100,8 @@ typedef struct
     bool *countdown;
 } TimerTrd;
 
+ struct GameTimerTrd;
+
 typedef struct
 {
     ServerSettings *server;
@@ -111,6 +113,7 @@ typedef struct
     int keep_alive;
     TimerTrd *timer_trd;
     LoginThr *login_trd;
+    struct GameTimerTrd* gtime_trd;
     bool *exit_server;
     bool countdown;
 } AdminThread;
@@ -127,3 +130,10 @@ typedef struct
     AdminThread *admin_thread;  
     bool *exit_server;
 } CltMsgTrd;
+
+typedef struct GameTimerTrd{
+    AdminThread *admin_thread; 
+    ServerSettings *server;
+    pthread_t tid;
+    void* retval;
+} GameTimerTrd;

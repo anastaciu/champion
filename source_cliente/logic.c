@@ -26,10 +26,8 @@ void *com_thread(void *arg)
         int r = read(msg_trd->clt_fifo_fd, msg_trd->msg, sizeof(ComMsg));
         if (r == sizeof(ComMsg))
         {
-            if(msg_trd->msg->log_state == ENDED){
-                close(msg_trd->clt_fifo_fd);
-                close(*msg_trd->srv_fifo_fd);
-                remove(msg_trd->plr_fifo);
+            if (msg_trd->msg->log_state == ENDED)
+            {
                 print("\nO campeonato terminou!\n", STDOUT_FILENO);
                 print(msg_trd->msg->msg, STDOUT_FILENO);
                 *msg_trd->cli_msg_keep_alive = 0;
@@ -39,9 +37,6 @@ void *com_thread(void *arg)
 
             else if (msg_trd->msg->log_state == REMOVED)
             {
-                close(msg_trd->clt_fifo_fd);
-                close(*msg_trd->srv_fifo_fd);
-                remove(msg_trd->plr_fifo);
                 print("\nFoi removido pelo árbitro!\n", STDOUT_FILENO);
                 *msg_trd->cli_msg_keep_alive = 0;
                 pthread_kill(msg_trd->com_tid, SIGUSR2);
@@ -49,9 +44,7 @@ void *com_thread(void *arg)
             }
             else if (msg_trd->msg->log_state == EXITED)
             {
-                close(msg_trd->clt_fifo_fd);
-                close(*msg_trd->srv_fifo_fd);
-                remove(msg_trd->plr_fifo);
+                remove(msg_trd->clt_fifo_name);
                 print("\nO servidor foi encerrado!\n", STDOUT_FILENO);
                 *msg_trd->cli_msg_keep_alive = 0;
                 pthread_kill(msg_trd->com_tid, SIGUSR2);
@@ -59,9 +52,6 @@ void *com_thread(void *arg)
             }
             else if (msg_trd->msg->log_state == QUITED)
             {
-                close(msg_trd->clt_fifo_fd);
-                close(*msg_trd->srv_fifo_fd);
-                remove(msg_trd->plr_fifo);
                 print("\nSaiu do jogo!\n", STDOUT_FILENO);
                 *msg_trd->cli_msg_keep_alive = 0;
                 pthread_kill(msg_trd->com_tid, SIGUSR2);
@@ -97,7 +87,6 @@ void *com_thread(void *arg)
                     if (*msg_trd->srv_fifo_fd == -1)
                     {
                         perror(ERROR_SERVER_FIFO);
-                        remove(msg_trd->clt_fifo_name);
                         *msg_trd->cli_msg_keep_alive = 0;
                         pthread_kill(msg_trd->com_tid, SIGUSR2);
                         pthread_exit(NULL);

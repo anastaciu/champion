@@ -26,7 +26,18 @@ void *com_thread(void *arg)
         int r = read(msg_trd->clt_fifo_fd, msg_trd->msg, sizeof(ComMsg));
         if (r == sizeof(ComMsg))
         {
-            if (msg_trd->msg->log_state == REMOVED)
+            if(msg_trd->msg->log_state == ENDED){
+                close(msg_trd->clt_fifo_fd);
+                close(*msg_trd->srv_fifo_fd);
+                remove(msg_trd->plr_fifo);
+                print("\nO campeonato terminou!\n", STDOUT_FILENO);
+                print(msg_trd->msg->msg, STDOUT_FILENO);
+                *msg_trd->cli_msg_keep_alive = 0;
+                pthread_kill(msg_trd->com_tid, SIGUSR2);
+                break;
+            }
+
+            else if (msg_trd->msg->log_state == REMOVED)
             {
                 close(msg_trd->clt_fifo_fd);
                 close(*msg_trd->srv_fifo_fd);

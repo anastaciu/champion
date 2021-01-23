@@ -24,25 +24,17 @@ typedef enum
     QUITED, 
     STARTED,
     PLAYING,
-    REINSTATED
+    REINSTATED,
+    ENDED
 } LogState; // estados de login
-
-// estrutura simples para nome e  pontos de jogador
-typedef struct
-{
-    char player_name[MAX_LEN_NAME]; // nome do jogador
-    int points;                     // pontos
-} PlrPoints;
 
 // dados de relevantes para comunicação servidor/cliente
 typedef struct
 {
-    int points;                   // pontos do jogador
-    int player_pid;
+    pid_t player_pid;             // pid do jogador para indentificação da msg no servidor
     LogState log_state;           // estado de login
     char msg[OUTPUT_SIZE];        // mensagens de texto, contém comandos ou mensagens para o jogo
     char game_name[MAX_LEN_NAME]; // nome do jogo atribuído
-    PlrPoints winner;             // dados do actual primeiro classificado
 } ComMsg;
 
 // dados da estrutura principal de comunicação cliente/servidor

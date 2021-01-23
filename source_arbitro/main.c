@@ -311,29 +311,43 @@ int main(int argc, char **argv)
             {
                 kill(clients[i].game_pid, SIGUSR1);
             }
-            msg.log_state = EXITED;
-
-            if (write(clients[i].clt_fifo_fd, &msg, sizeof msg) == -1)
+            if (server.wait_time > 0)
             {
-                if (errno == EPIPE)
+                msg.log_state = EXITED;
+
+                if (write(clients[i].clt_fifo_fd, &msg, sizeof msg) == -1)
                 {
-                    perror("sinal");
+                    if (errno == EPIPE)
+                    {
+                        perror("sinal");
+                    }
                 }
             }
             pthread_join(gtrd[i].tid, &gtrd[i].retval);
-            close(clients[i].clt_fifo_fd);
         }
-
 
         if (server.wait_time == 0)
         {
-            qsort(clients, server.player_count, sizeof(PlayerInfo), compare);
-            
+            qsort(clients, server.player_count, sizeof clients[0], compare);
+            ComMsg msg;
+            memset(&msg, 0, sizeof msg);
+            msg.log_state = ENDED;
             print("\n", STDOUT_FILENO);
             for (int i = 0; i < server.player_count; i++)
             {
+                if (clients[i].player_pid == clients[0].player_pid)
+                {
+                    sprintf(msg.msg, "Você é vencedor do campeonato, com a pontuação de %d\n", clients[0].points);
+                    write(clients[i].clt_fifo_fd, &msg, sizeof msg);
+                }
+                else
+                {
+                    sprintf(msg.msg, "O vencedor do campeonato é o/a %s, com a pontuação de %d\nA sua pontuação foi %d\n", clients[0].name, clients[0].points, clients[i].points);
+                    write(clients[i].clt_fifo_fd, &msg, sizeof msg);
+                }
                 printf("%s terminou com %d points\n", clients[i].name, clients[i].points);
                 fflush(stdout);
+                close(clients[i].clt_fifo_fd);
             }
         }
 

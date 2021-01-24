@@ -118,16 +118,17 @@ int main(int argc, char **argv)
 
     PlayerInfo clients[server.n_players]; //array de clientes definido com base no número máximo de jogadores
     GameThrd gtrd[server.n_players];      // array de threads para o jogo
-
     bool exit_server;
     int global_wait_time = server.wait_time;
     int global_game_time = server.game_duration;
+    pthread_mutex_t exit_server_lock;
+    pthread_mutex_init(&exit_server_lock, NULL);
 
     do
     {
         exit_server = false;
-        pthread_mutex_t mutex;
-        pthread_mutex_t timer_mutex;
+        pthread_mutex_t client_data_mutex;
+        pthread_mutex_t timer_mutex;       
         pthread_cond_t timer_cond;
 
 
@@ -149,7 +150,7 @@ int main(int argc, char **argv)
         //fim
 
         //mutex para dados de clientes
-        pthread_mutex_init(&mutex, NULL);
+        pthread_mutex_init(&client_data_mutex, NULL);
 
         //mutex de accesso à condição da thread timer
         pthread_mutex_init(&timer_mutex, NULL);
@@ -168,7 +169,7 @@ int main(int argc, char **argv)
         login.logged_users = clients;
         login.server = &server;
         login.gt = gtrd;
-        login.mutex = &mutex;
+        login.client_data_mutex = &client_data_mutex;
         login.timer_mutex = &timer_mutex;
         login.timer_cond = &timer_cond;
         login.pause = true;
@@ -236,11 +237,12 @@ int main(int argc, char **argv)
         admin.clients = clients;
         admin.gtrd = gtrd;
         admin.server = &server;
-        admin.mutex = &mutex;
+        admin.client_data_mutex = &client_data_mutex;
         admin.keep_alive = 1;
         admin.timer_trd = &timer;
         admin.login_trd = &login;
         admin.exit_server = &exit_server;
+        admin.exit_server_lock = &exit_server_lock;
         admin.gtime_trd = &gtimer_trd;
         admin.timer_cond = &timer_cond;
         admin.timer_mutex = &timer_mutex;
@@ -294,7 +296,7 @@ int main(int argc, char **argv)
             admin.keep_alive = 0;
             pthread_kill(admin.tid, SIGUSR1);
             pthread_join(admin.tid, &admin.retval);
-            pthread_mutex_destroy(&mutex);
+            pthread_mutex_destroy(&client_data_mutex);
             pthread_mutex_destroy(&timer_mutex);
             exit(EXIT_SUCCESS);
         }
@@ -321,7 +323,7 @@ int main(int argc, char **argv)
             write(clients[i].clt_fifo_fd, &msg, sizeof msg);
             gtrd[i].pli = &clients[i];
             gtrd[i].keep_alive = 1;
-            gtrd[i].mutex = &mutex;
+            gtrd[i].mutex = &client_data_mutex;
             pthread_create(&gtrd[i].tid, NULL, game_thread, (void *)&gtrd[i]);
         }
         //fim
@@ -339,7 +341,7 @@ int main(int argc, char **argv)
         clt_msg.pli = clients;
         clt_msg.server = &server;
         clt_msg.gtrd = gtrd;
-        clt_msg.mutex = &mutex;
+        clt_msg.mutex = &client_data_mutex;
         clt_msg.admin_thread = &admin;
 
         pthread_create(&clt_msg.tid, NULL, game_clt_thread, (void *)&clt_msg);
@@ -416,15 +418,15 @@ int main(int argc, char **argv)
         clt_msg.keep_alive = 0;
         pthread_kill(clt_msg.tid, SIGUSR1);
         pthread_join(clt_msg.tid, &clt_msg.retval);
-        pthread_mutex_destroy(&mutex);
+        pthread_mutex_destroy(&client_data_mutex);
         pthread_mutex_destroy(&timer_mutex);
+        pthread_cond_destroy(&timer_cond);
         //fim
 
         //Fecha fifos abertos e elimina FIFO do servidor
         close(server.srv_fifo_fd);
         remove(SERVER_FIFO);
-        //fim
-
+        //fim   
     } while (!exit_server); //equanto não houver exit, servidor inicia novo campeonato
 
     //elimina memória reservada para game_dir caso ela tenha sido necessária

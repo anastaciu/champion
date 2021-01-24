@@ -280,19 +280,23 @@ void *login_thread(void *arg)
 
             if (state != LOGGED && state != MAX_USERS)
             {
+                pthread_mutex_lock(l_thrd->client_data_mutex);
                 l_thrd->logged_users[l_thrd->server->player_count].player_pid = player.player_pid;
                 strcpy(l_thrd->logged_users[l_thrd->server->player_count].name, player.name);
                 strcpy(l_thrd->logged_users[l_thrd->server->player_count].player_fifo, player.player_fifo);
                 game_index = rand() % l_thrd->server->n_games;
                 strncpy(l_thrd->logged_users[l_thrd->server->player_count].game_name, l_thrd->server->game_list[game_index], sizeof l_thrd->logged_users[l_thrd->server->player_count].game_name);
                 l_thrd->server->player_count++;
+                pthread_mutex_unlock(l_thrd->client_data_mutex);
             }
 
             clt_fifo_fd = open(player.player_fifo, O_WRONLY);
 
             if (state != LOGGED && state != MAX_USERS)
             {
+                pthread_mutex_lock(l_thrd->client_data_mutex);
                 l_thrd->logged_users[l_thrd->server->player_count - 1].clt_fifo_fd = clt_fifo_fd;
+                pthread_mutex_unlock(l_thrd->client_data_mutex);
 
                 if (l_thrd->server->player_count > 1)
                 {
@@ -304,7 +308,9 @@ void *login_thread(void *arg)
             }
             if (clt_fifo_fd != -1)
             {
+                pthread_mutex_lock(l_thrd->client_data_mutex);
                 strncpy(l_thrd->logged_users[l_thrd->server->player_count - 1].game_name, l_thrd->server->game_list[game_index], sizeof l_thrd->logged_users[l_thrd->server->player_count - 1].game_name);
+                pthread_mutex_unlock(l_thrd->client_data_mutex);
 
                 log_res = write(clt_fifo_fd, &state, sizeof state);
 
@@ -457,7 +463,7 @@ void *admin_thread(void *arg)
                                 kill(admin->clients[i].game_pid, SIGUSR1);
                                 pthread_join(admin->gtrd[i].tid, &admin->gtrd[i].retval);
 
-                                pthread_mutex_lock(admin->mutex);
+                                pthread_mutex_lock(admin->client_data_mutex);
                                 admin->server->player_count--;
                                 while (i < admin->server->player_count)
                                 {
@@ -465,7 +471,7 @@ void *admin_thread(void *arg)
                                     admin->gtrd[i] = admin->gtrd[i + 1];
                                     i++;
                                 }
-                                pthread_mutex_unlock(admin->mutex);
+                                pthread_mutex_unlock(admin->client_data_mutex);
                                 if (admin->server->player_count < 2)
                                 {
                                     print("\nNão há jogadores suficientes para continuar...\n", STDOUT_FILENO);
@@ -582,7 +588,10 @@ void *admin_thread(void *arg)
                 }
                 else
                 {
+                    pthread_mutex_lock(admin->exit_server_lock);
                     *admin->exit_server = true;
+                    pthread_mutex_unlock(admin->exit_server_lock);
+
                     admin->keep_alive = 0;
                     if (admin->server->player_count == 1)
                     {

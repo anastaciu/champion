@@ -77,7 +77,7 @@ typedef struct
     PlayerInfo *logged_users; // array de clientes ligados
     ServerSettings *server;
     GameThrd *gt;
-    pthread_mutex_t *mutex;
+    pthread_mutex_t *client_data_mutex;
     int *admin_keep_alive;
     pthread_cond_t *timer_cond;
     pthread_mutex_t *timer_mutex;
@@ -109,8 +109,9 @@ typedef struct
     GameThrd *gtrd;
     void *retval;  // exit status da thread
     pthread_t tid; // id da thread
-    pthread_mutex_t *mutex;
+    pthread_mutex_t *client_data_mutex;
     pthread_mutex_t *timer_mutex;
+    pthread_mutex_t *exit_server_lock;
     pthread_cond_t *timer_cond;
     int keep_alive;
     TimerTrd *timer_trd;

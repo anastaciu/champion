@@ -181,18 +181,28 @@ void *game_thread(void *arg)
         strcpy(msg.game_name, g_trd->pli->game_name);
         msg.log_state = PLAYING;
 
-        while ((nbytes = read(g_trd->pli->fd_pipe_read[0], &msg.msg, sizeof msg.msg)) > 0)
+        int pipe_read = g_trd->pli->fd_pipe_read[0];
+        int clt_fifo_fd = g_trd->pli->clt_fifo_fd;
+        pid_t player_pid = g_trd->pli->player_pid;
+
+        while ((nbytes = read(pipe_read, &msg.msg, sizeof msg.msg)) > 0)
         {
             msg.msg[nbytes] = '\0';
-            nbytes = write(g_trd->pli->clt_fifo_fd, &msg, sizeof msg);
+            nbytes = write(clt_fifo_fd, &msg, sizeof msg);
         }
 
         wait(&exit_status);
         if (WIFEXITED(exit_status))
         {
-            g_trd->pli->points = WEXITSTATUS(exit_status);
-            //printf("O jogador %s terminou com %d pontos\n", g_trd->pli->name, g_trd->pli->points);
-            //fflush(stdout);
+            for (int i = 0; i < g_trd->server->player_count; i++)
+            {
+                if (player_pid == g_trd->clients[i].player_pid)
+                {
+                    g_trd->clients[i].points = WEXITSTATUS(exit_status);
+                    break;                  
+                }
+
+            }
         }
     }
 

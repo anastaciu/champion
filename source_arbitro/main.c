@@ -323,6 +323,8 @@ int main(int argc, char **argv)
             write(clients[i].clt_fifo_fd, &msg, sizeof msg);
             gtrd[i].pli = &clients[i];
             gtrd[i].keep_alive = 1;
+            gtrd[i].clients = clients;
+            gtrd[i].server = &server;
             gtrd[i].mutex = &client_data_mutex;
             pthread_create(&gtrd[i].tid, NULL, game_thread, (void *)&gtrd[i]);
         }

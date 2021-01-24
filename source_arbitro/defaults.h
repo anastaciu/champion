@@ -66,6 +66,8 @@ typedef struct
     void *retval;    // exit status da thread
     PlayerInfo *pli; // info do jogador a passar à thread
     pthread_mutex_t *mutex;
+    PlayerInfo *clients;
+    ServerSettings * server;
 } GameThrd;
 
 // estrutura da thread de verificação de dados e setup de login no servidor

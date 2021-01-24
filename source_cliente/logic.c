@@ -144,23 +144,16 @@ void *cli_thread(void *arg)
 
         if (cli_trd->keep_alive == 1)
         {
-            if (strcmp(input, "#MYGAME") == 0)
+
+            strcpy(msg.msg, input);
+            msg.log_state = PLAYING;
+            if (fd_is_valid(*cli_trd->srv_fifo_fd))
             {
-                printf("O seu jogo é %s!\n>", cli_trd->game_name);
-                fflush(stdout);
+                write(*cli_trd->srv_fifo_fd, &msg, sizeof msg);
             }
             else
             {
-                strcpy(msg.msg, input);
-                msg.log_state = PLAYING;
-                if (fd_is_valid(*cli_trd->srv_fifo_fd))
-                {
-                    write(*cli_trd->srv_fifo_fd, &msg, sizeof msg);
-                }
-                else
-                {
-                    print("Neste momento não é permitido comunicar com o servidor, aguarde...\n>", STDOUT_FILENO);
-                }
+                print("Neste momento não é permitido comunicar com o servidor, aguarde...\n>", STDOUT_FILENO);
             }
         }
     }

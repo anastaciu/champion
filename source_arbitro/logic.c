@@ -178,7 +178,6 @@ void *game_thread(void *arg)
         int exit_status;
         close(g_trd->pli->fd_pipe_write[0]);
         close(g_trd->pli->fd_pipe_read[1]);
-        strcpy(msg.game_name, g_trd->pli->game_name);
         msg.log_state = PLAYING;
 
         int pipe_read = g_trd->pli->fd_pipe_read[0];
@@ -682,6 +681,12 @@ void *game_clt_thread(void *arg)
                             pthread_kill(clt_msg->admin_thread->tid, SIGUSR1);
                             clt_msg->keep_alive = 0;
                         }
+                        break;
+                    }
+                    else if(strcmp(msg.msg, "#MYGAME") == 0){
+                        msg.log_state = PLAYING;
+                        sprintf(msg.msg, "O seu jogo é %s\n>", clt_msg->pli[i].game_name);
+                        write(clt_msg->pli[i].clt_fifo_fd, &msg, sizeof msg);
                         break;
                     }
                     else

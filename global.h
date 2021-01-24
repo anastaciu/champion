@@ -34,7 +34,6 @@ typedef struct
     pid_t player_pid;             // pid do jogador para indentificação da msg no servidor
     LogState log_state;           // estado de login
     char msg[OUTPUT_SIZE];        // mensagens de texto, contém comandos ou mensagens para o jogo
-    char game_name[MAX_LEN_NAME]; // nome do jogo atribuído
 } ComMsg;
 
 // dados da estrutura principal de comunicação cliente/servidor

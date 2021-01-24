@@ -105,7 +105,6 @@ int main()
     memset(&msg, 0, sizeof msg);
 
     cli_trd.keep_alive = 1;
-    cli_trd.game_name = msg.game_name;
     cli_trd.srv_fifo_fd = &srv_fifo_fd;
     cli_trd.clt_pid = player.player_pid;
 

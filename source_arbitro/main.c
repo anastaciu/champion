@@ -398,7 +398,11 @@ int main(int argc, char **argv)
             {
                 for (int i = 0; i < server.player_count; i++)
                 {
-                    if (clients[i].player_pid == clients[0].player_pid)
+                    if (clients[0].points == 0)
+                    {
+                        strcpy(msg.msg, "Nenhum jogador obteve qualquer ponto, não há vencedores\n");
+                    }
+                    else if (clients[i].player_pid == clients[0].player_pid)
                     {
                         sprintf(msg.msg, "Você é vencedor com %d pontos\n", clients[0].points);
                         write(clients[i].clt_fifo_fd, &msg, sizeof msg);

@@ -390,7 +390,7 @@ int main(int argc, char **argv)
             {
                 sprintf(msg.msg, "Não há mais jogadores. Você é vencedor com %d pontos\n", clients[0].points);
                 write(clients[0].clt_fifo_fd, &msg, sizeof msg);
-                printf("%s terminou com %d points\n", clients[0].name, clients[0].points);
+                printf("%s terminou com %d pontos\n", clients[0].name, clients[0].points);
             }
             else
             {
@@ -406,7 +406,7 @@ int main(int argc, char **argv)
                         sprintf(msg.msg, "O vencedor é o/a %s, com %d pontos\nA sua pontuação foi %d pontos\n", clients[0].name, clients[0].points, clients[i].points);
                         write(clients[i].clt_fifo_fd, &msg, sizeof msg);
                     }
-                    printf("%s terminou com %d points\n", clients[i].name, clients[i].points);
+                    printf("%s terminou com %d pontos\n", clients[i].name, clients[i].points);
                     fflush(stdout);
                     close(clients[i].clt_fifo_fd);
                 }

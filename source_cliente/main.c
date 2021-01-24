@@ -43,6 +43,10 @@ int main()
     get_user_input(player.name, STDIN_FILENO, MAX_LEN_NAME);
     //fim
 
+    if(strcmp(player.name, "SAIR") == 0){
+        return(EXIT_SUCCESS);
+    }
+
     //nome e crição do FIFO
     sprintf(player.player_fifo, CLIENT_LOG_FIFO, player.name);
     if (mkfifo(player.player_fifo, 0777) == -1)

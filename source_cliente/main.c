@@ -42,8 +42,9 @@ int main()
     get_user_input(player.name, STDIN_FILENO, MAX_LEN_NAME);
     //fim
 
-    if(strcmp(player.name, "SAIR") == 0){
-        return(EXIT_SUCCESS);
+    if (strcmp(player.name, "SAIR") == 0)
+    {
+        return (EXIT_SUCCESS);
     }
 
     //nome e crição do FIFO

@@ -47,7 +47,7 @@ void *com_thread(void *arg)
                 remove(msg_trd->clt_fifo_name);
                 print("\nO servidor foi encerrado!\n", STDOUT_FILENO);
                 *msg_trd->cli_msg_keep_alive = 0;
-                pthread_kill(msg_trd->com_tid, SIGUSR2);
+                pthread_kill(msg_trd->com_tid, SIGUSR2);                   
                 break;
             }
             else if (msg_trd->msg->log_state == QUITED)
@@ -147,6 +147,7 @@ void *cli_thread(void *arg)
 
             strcpy(msg.msg, input);
             msg.log_state = PLAYING;
+            
             if (fd_is_valid(*cli_trd->srv_fifo_fd))
             {
                 write(*cli_trd->srv_fifo_fd, &msg, sizeof msg);

@@ -122,15 +122,13 @@ int main(int argc, char **argv)
     int global_wait_time = server.wait_time;
     int global_game_time = server.game_duration;
     pthread_mutex_t exit_server_lock;
-    pthread_mutex_init(&exit_server_lock, NULL);
-
+   
     do
     {
         exit_server = false;
         pthread_mutex_t client_data_mutex;
-        pthread_mutex_t timer_mutex;       
+        pthread_mutex_t timer_mutex;
         pthread_cond_t timer_cond;
-
 
         //Cria FIFO de login do servidor
         if (mkfifo(SERVER_LOG_FIFO, 0777) == -1)
@@ -298,6 +296,7 @@ int main(int argc, char **argv)
             pthread_join(admin.tid, &admin.retval);
             pthread_mutex_destroy(&client_data_mutex);
             pthread_mutex_destroy(&timer_mutex);
+            pthread_cond_destroy(&timer_cond);
             exit(EXIT_SUCCESS);
         }
         //fim
@@ -331,7 +330,7 @@ int main(int argc, char **argv)
         //fim
 
         //thread de controlo de tempo de jogo
-        
+
         gtimer_trd.admin_thread = &admin;
         gtimer_trd.server = &server;
 
@@ -355,8 +354,6 @@ int main(int argc, char **argv)
         {
             pthread_join(gtimer_trd.tid, &gtimer_trd.retval);
         }
-
-
 
         //fim das threads dos jogos
         for (int i = 0; i < server.player_count; i++)
@@ -384,37 +381,49 @@ int main(int argc, char **argv)
         //mensagens de fim de campeonato aos clientes
         if (server.wait_time == 0)
         {
-            qsort(clients, server.player_count, sizeof clients[0], compare);
-            memset(&msg, 0, sizeof msg);
-            msg.log_state = ENDED;
-            print("\n", STDOUT_FILENO);
-            if (server.player_count == 1)
+            if (exit_server)
             {
-                sprintf(msg.msg, "Não há mais jogadores. Você é vencedor com %d pontos\n", clients[0].points);
-                write(clients[0].clt_fifo_fd, &msg, sizeof msg);
-                printf("%s terminou com %d pontos\n", clients[0].name, clients[0].points);
+                msg.log_state = EXITED;
+                for (int i = 0; i < server.player_count; i++)
+                {
+                    write(clients[i].clt_fifo_fd, &msg, sizeof msg);
+                }
             }
             else
             {
-                for (int i = 0; i < server.player_count; i++)
+                qsort(clients, server.player_count, sizeof clients[0], compare);
+                memset(&msg, 0, sizeof msg);
+                msg.log_state = ENDED;
+
+                if (server.player_count == 1)
                 {
-                    if (clients[0].points == 0)
+                    sprintf(msg.msg, "Não há mais jogadores. Você é vencedor com %d pontos\n", clients[0].points);
+                    write(clients[0].clt_fifo_fd, &msg, sizeof msg);
+                    printf("%s terminou com %d pontos\n", clients[0].name, clients[0].points);
+                }
+                else
+                {
+                    for (int i = 0; i < server.player_count; i++)
                     {
-                        strcpy(msg.msg, "Nenhum jogador obteve qualquer ponto, não há vencedores\n");
-                    }
-                    else if (clients[i].player_pid == clients[0].player_pid)
-                    {
-                        sprintf(msg.msg, "Você é vencedor com %d pontos\n", clients[0].points);
+
+                        if (clients[0].points == 0)
+                        {
+                            strcpy(msg.msg, "Nenhum jogador obteve qualquer ponto\n");
+                        }
+                        else if (clients[i].player_pid == clients[0].player_pid)
+                        {
+                            sprintf(msg.msg, "Você é vencedor com %d pontos\n", clients[0].points);
+                        }
+                        else
+                        {
+                            sprintf(msg.msg, "O vencedor é o/a %s, com %d pontos\nA sua pontuação foi %d pontos\n", clients[0].name, clients[0].points, clients[i].points);
+                        }
                         write(clients[i].clt_fifo_fd, &msg, sizeof msg);
+
+                        printf("%s terminou com %d pontos\n", clients[i].name, clients[i].points);
+                        fflush(stdout);
+                        close(clients[i].clt_fifo_fd);
                     }
-                    else
-                    {
-                        sprintf(msg.msg, "O vencedor é o/a %s, com %d pontos\nA sua pontuação foi %d pontos\n", clients[0].name, clients[0].points, clients[i].points);
-                        write(clients[i].clt_fifo_fd, &msg, sizeof msg);
-                    }
-                    printf("%s terminou com %d pontos\n", clients[i].name, clients[i].points);
-                    fflush(stdout);
-                    close(clients[i].clt_fifo_fd);
                 }
             }
         }
@@ -432,7 +441,7 @@ int main(int argc, char **argv)
         //Fecha fifos abertos e elimina FIFO do servidor
         close(server.srv_fifo_fd);
         remove(SERVER_FIFO);
-        //fim   
+        //fim
     } while (!exit_server); //equanto não houver exit, servidor inicia novo campeonato
 
     //elimina memória reservada para game_dir caso ela tenha sido necessária

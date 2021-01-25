@@ -340,7 +340,7 @@ int main(int argc, char **argv)
         //setup e lançamento dos dados para thread de leitura de mensagens dos clientes
         memset(&clt_msg, 0, sizeof clt_msg);
         clt_msg.keep_alive = 1;
-        clt_msg.pli = clients;
+        clt_msg.clients = clients;
         clt_msg.server = &server;
         clt_msg.gtrd = gtrd;
         clt_msg.mutex = &client_data_mutex;

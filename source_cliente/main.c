@@ -31,7 +31,6 @@ int main()
     if (srv_log_fifo_fd == -1)
     {
         perror(ERROR_SERVER_FIFO);
-        remove(player.player_fifo);
         return EXIT_FAILURE;
     }
     //fim

@@ -125,7 +125,7 @@ typedef struct
 
 typedef struct
 {
-    PlayerInfo *pli;
+    PlayerInfo *clients;
     GameThrd *gtrd;
     ServerSettings *server;
     int keep_alive;

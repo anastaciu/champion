@@ -652,28 +652,29 @@ void *game_clt_thread(void *arg)
         {
             for (int i = 0; i < clt_msg->server->player_count; i++)
             {
-                if (msg.player_pid == clt_msg->pli[i].player_pid)
+                if (msg.player_pid == clt_msg->clients[i].player_pid)
                 {
 
                     if (strcmp(msg.msg, "#QUIT") == 0)
                     {
                         msg.log_state = QUITED;
-                        kill(clt_msg->pli[i].game_pid, SIGUSR1);
-                        write(clt_msg->pli[i].clt_fifo_fd, &msg, sizeof msg);
-                        close(clt_msg->pli[i].clt_fifo_fd);
-                        close(clt_msg->pli[i].fd_pipe_read[0]);
-                        close(clt_msg->pli[i].fd_pipe_write[1]);
-                        pthread_mutex_lock(clt_msg->mutex);
+                        kill(clt_msg->clients[i].game_pid, SIGUSR1);
+                        write(clt_msg->clients[i].clt_fifo_fd, &msg, sizeof msg);
+                        close(clt_msg->clients[i].clt_fifo_fd);
+                        close(clt_msg->clients[i].fd_pipe_read[0]);
+                        close(clt_msg->clients[i].fd_pipe_write[1]);
+                   
                         clt_msg->server->player_count--;
+                 
                         pthread_join(clt_msg->gtrd[i].tid, &clt_msg->gtrd[i].retval);
                         while (i < clt_msg->server->player_count)
                         {
-                            clt_msg->pli[i] = clt_msg->pli[i + 1];
-                            clt_msg->gtrd[i] = clt_msg->gtrd[i + 1];
+                     
+                            clt_msg->clients[i] = clt_msg->clients[i + 1];
+                            clt_msg->gtrd[i] = clt_msg->gtrd[i + 1];     
                             i++;
                         }
-                        pthread_mutex_unlock(clt_msg->mutex);
-
+                      
                         if (clt_msg->server->player_count < 2)
                         {
                             print("\nNão há jogadores suficientes para continuar o jogo!\n", STDERR_FILENO);
@@ -685,13 +686,13 @@ void *game_clt_thread(void *arg)
                     }
                     else if(strcmp(msg.msg, "#MYGAME") == 0){
                         msg.log_state = PLAYING;
-                        sprintf(msg.msg, "O seu jogo é %s\n>", clt_msg->pli[i].game_name);
-                        write(clt_msg->pli[i].clt_fifo_fd, &msg, sizeof msg);
+                        sprintf(msg.msg, "O seu jogo é %s\n>", clt_msg->clients[i].game_name);
+                        write(clt_msg->clients[i].clt_fifo_fd, &msg, sizeof msg);
                         break;
                     }
                     else
                     {
-                        write(clt_msg->pli[i].fd_pipe_write[1], &msg.msg, strlen(msg.msg) + 1);
+                        write(clt_msg->clients[i].fd_pipe_write[1], &msg.msg, strlen(msg.msg) + 1);
                     }
 
                     break;

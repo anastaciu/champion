@@ -1,6 +1,6 @@
-Licenciatura em Engenharia Informática - ISEC
+### Licenciatura em Engenharia Informática - ISEC
 
-Sistema cliente - servidor UNIX
+#### Sistema cliente - servidor UNIX
 
 ### Requisitos do projecto
 
@@ -30,9 +30,9 @@ https://github.com/anastaciu/champion/blob/Master/RelatorioSOFinal.pdf
 
 ---
 
-Computer Science Degree - ISEC
+### Computer Science Degree - ISEC
 
-client -server UNIX
+#### client -server UNIX
 
 ### Project requirements
 

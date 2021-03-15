@@ -14,9 +14,9 @@ https://github.com/anastaciu/champion/blob/Master/SO%20-%202021%20-%20Enunciado%
 
 - Correr o comando `make`
 
-- Executar o servidor (./arbitro)
+- Executar o servidor ( ./arbitro -w <tempo de espera> -g <tempo de jogo> )
 
-- Definir os requisitos do jogo / variáveis de ambiente
+- Definir os requisitos do jogo / variáveis de ambiente (opcional)
 
 - Executar o(s) cliente(s) (./cliente)
 
@@ -46,9 +46,9 @@ https://github.com/anastaciu/champion/blob/Master/SO%20-%202021%20-%20Enunciado%
 
 - Run `make`
 
-- Execute server (./arbitro)
+- Execute server ( ./arbitro -g <game time> -w <wait time> )
 
-- Define server settings / environment variables
+- Define server settings / environment variables (optional)
 
 - Execute clients (./cliente)
 
